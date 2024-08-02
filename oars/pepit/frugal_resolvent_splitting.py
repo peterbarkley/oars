@@ -20,7 +20,7 @@ def wc_frugal_resolvent_splitting(L, W, lipschitz_values, mu_values, alpha=1, ga
 
     is valid, where :math:`\\mathbf{v}^{(0)}_{t+1}` and :math:`\\mathbf{v}^{(1)}_{t+1}` are obtained after one iteration of the frugal resolvent splitting from respectively :math:`\\mathbf{v}^{(0)}_{t}` and :math:`\\mathbf{v}^{(1)}_{t}`.
 
-    In short, for given values of :math:`L`, :math:`W`, :math:`l`, :math:`\\mu`, :math:`\\alpha` and :math:`\\gamma`, the contraction factor :math:`\\tau(L, \\mu, \\alpha, \\theta)` is computed as the worst-case value of
+    In short, for given values of :math:`L`, :math:`W`, :math:`l`, :math:`\\mu`, :math:`\\alpha` and :math:`\\gamma`, the contraction factor :math:`\\tau(L, W, \\mu, \\alpha, \\theta)` is computed as the worst-case value of
     :math:`\\|\\mathbf{v}^{(0)}_{t+1} - \\mathbf{v}^{(1)}_{t+1}\\|^2` when :math:`\\|\\mathbf{v}^{(0)}_{t} - \\mathbf{v}^{(1)}_{t}\\|^2 \\leqslant 1`.
 
     **Algorithm**: One iteration of the parameterized frugal resolvent splitting is described as follows,
@@ -45,8 +45,7 @@ def wc_frugal_resolvent_splitting(L, W, lipschitz_values, mu_values, alpha=1, ga
     `[3] W. Moursi, L. Vandenberghe (2019). Douglas–Rachford Splitting for the Sum of a Lipschitz Continuous and a Strongly Monotone Operator. Journal of Optimization Theory and Applications 183, 179–198. <https://arxiv.org/pdf/1805.09396.pdf>`_
 
     `[4] R. Bassett, P. Barkley (2024). 
-    Optimal Design of Resolvent Splitting Algorithms. arxiv:2407.16159
-    Conference or journal (Acronym of conference or journal).
+    Optimal Design of Resolvent Splitting Algorithms. arxiv:2407.16159.
     <https://arxiv.org/pdf/2407.16159.pdf>`_
 
     Args:
