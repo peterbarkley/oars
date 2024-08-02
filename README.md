@@ -1,0 +1,1 @@
+This package provides tools for building custom proximal splitting algorithms.
