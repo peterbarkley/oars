@@ -1,3 +1,3 @@
-from .oars import getCore
+from .oars import solve, solveMT
 
-__all__ = ['oars', 'getCore']
+__all__ = ['oars', 'solve', 'solveMT']

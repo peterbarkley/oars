@@ -22,13 +22,14 @@ VERSION = '0.1.0'
 
 # What packages are required for this module to be executed?
 REQUIRED = [
-    'numpy', 'cvxpy'
+    'numpy', 'cvxpy', 'scipy', 'pyomo'
     # 'requests', 'maya', 'records',
 ]
 
 # What packages are optional?
 EXTRAS = {
     'pepit': ['PEPit'],
+    'analyis': ['plotly', 'pandas'],
     # 'fancy feature': ['django'],
 }
 
