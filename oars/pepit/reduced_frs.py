@@ -9,9 +9,15 @@ def wc_reduced_frugal_resolvent_splitting(L, M, lipschitz_values, mu_values, alp
 
     .. math:: \\mathrm{Find}\\, x:\\, 0 \\in \\sum_{i=1}^{n} A_i(x),
 
-    where :math:`A_i` is the subdifferential of an :math:`l_i`-Lipschitz smooth and :math:`\\mu_i`-strongly convex function for all :math:`i \\leq n`. We denote by :math:`J_{\\alpha A_i}` the resolvent of :math:`\\alpha A_i`. We denote the lifted vector operator :math:`\\mathbf{A}` as :math:`\\mathbf{A} = [A_1, \\dots, A_n]`, and use lifted :math:`\\mathbf{x}` and :math:`\\mathbf{v}` as :math:`\\mathbf{x} = [x_1, \\dots, x_n]` and :math:`\\mathbf{v} = [v_1, \\dots, v_n]`. We denote by :math:`L` and :math:`M` the algorithm design matrices, and by :math:`l` and :math:`\\mu` the vectors of Lipschitz and strong convexity constants of the lifted operator :math:`A`. :math:`L` is assumed to be strictly lower diagonal and sum to :math:`n`, and :math:`M` is assumed to have the span of the ones vector as its kernel.
+    where :math:`A_i` is the subdifferential of an :math:`l_i`-Lipschitz smooth and :math:`\\mu_i`-strongly convex function for all :math:`i \\leq n`. 
+    We denote by :math:`J_{\\alpha A_i}` the resolvent of :math:`\\alpha A_i`. 
+    We denote the lifted vector operator :math:`\\mathbf{A}` as :math:`\\mathbf{A} = [A_1, \\dots, A_n]`, 
+    and use lifted :math:`\\mathbf{x} = [x_1, \\dots, x_n]` and :math:`\\mathbf{w} = [w_1, \\dots, w_d]`. 
+    We denote by :math:`L \\in \mathbb{R}^{n \\times n}` and :math:`M \\in \mathbb{R}^{n-1 \\times n}` the reduced algorithm design matrices, and by :math:`l` and :math:`\\mu` the vectors of Lipschitz and strong convexity constants of the lifted operator :math:`\\mathbf{A}`. 
+    :math:`L` is assumed to be strictly lower diagonal.
 
-    This code computes a worst-case guarantee for any reduced frugal resolvent splitting with design matrices :math:`L, M`. This can include the Malitsky-Tam [1], Ryu Three Operator Splitting [2], Douglas-Rachford [3], or block splitting algorithms [4].
+    This code computes a worst-case guarantee for any reduced frugal resolvent splitting with design matrices :math:`L, M`. 
+    As shown in [1] and [2], this can include the Malitsky-Tam [3], Ryu Three Operator Splitting [4], Douglas-Rachford [5], or block splitting algorithms [1].
     That is, given two lifted initial points :math:`\\mathbf{w}^{(0)}_t` and :math:`\\mathbf{w}^{(1)}_t`
     this code computes the smallest possible :math:`\\tau(L, M, l, \\mu, \\alpha, \\gamma)`
     (a.k.a. "contraction factor") such that the guarantee
@@ -23,8 +29,7 @@ def wc_reduced_frugal_resolvent_splitting(L, M, lipschitz_values, mu_values, alp
     In short, for given values of :math:`L`, :math:`M`, :math:`l`, :math:`\\mu`, :math:`\\alpha` and :math:`\\gamma`, the contraction factor :math:`\\tau(L, M, \\mu, \\alpha, \\theta)` is computed as the worst-case value of
     :math:`\\|\\mathbf{w}^{(0)}_{t+1} - \\mathbf{w}^{(1)}_{t+1}\\|^2` when :math:`\\|\\mathbf{w}^{(0)}_{t} - \\mathbf{w}^{(1)}_{t}\\|^2 \\leqslant 1`.
 
-    **Algorithm**: One iteration of the parameterized frugal resolvent splitting is described as follows,
-    for :math:`t \\in \\{ 0, \\dots, n-1\\}`,
+    **Algorithm**: One iteration of the parameterized frugal resolvent splitting is described as follows:
 
         .. math::
             :nowrap:
@@ -35,24 +40,27 @@ def wc_reduced_frugal_resolvent_splitting(L, M, lipschitz_values, mu_values, alp
             \\end{eqnarray}
 
     **References**:
-    `[1] Y. Malitsky, M. Tam (2023). Resolvent splitting for sums of monotone operators
-    with minimal lifting. Mathematical Programming 201(1-2):231–262. <https://arxiv.org/pdf/2108.02897.pdf>`_
 
-    `[2] E. Ryu (2020). Uniqueness of drs as the 2 operator resolvent-splitting and
-    impossibility of 3 operator resolvent-splitting. Mathematical Programming 182(1-
-    2):233–273. <https://arxiv.org/pdf/1802.07534>`_
-
-    `[3] W. Moursi, L. Vandenberghe (2019). Douglas–Rachford Splitting for the Sum of a Lipschitz Continuous and a Strongly Monotone Operator. Journal of Optimization Theory and Applications 183, 179–198. <https://arxiv.org/pdf/1805.09396.pdf>`_
-
-    `[4] R. Bassett, P. Barkley (2024). 
+    `[1] R. Bassett, P. Barkley (2024). 
     Optimal Design of Resolvent Splitting Algorithms. arxiv:2407.16159.
     <https://arxiv.org/pdf/2407.16159.pdf>`_
+
+    `[2] M. Tam (2023). Frugal and decentralised resolvent splittings defined by nonexpansive operators. Optimization Letters pp 1–19. <https://arxiv.org/pdf/2211.04594.pdf>`_
+
+    `[3] Y. Malitsky, M. Tam (2023). Resolvent splitting for sums of monotone operators
+    with minimal lifting. Mathematical Programming 201(1-2):231–262. <https://arxiv.org/pdf/2108.02897.pdf>`_
+
+    `[4] E. Ryu (2020). Uniqueness of DRS as the 2 operator resolvent-splitting and impossibility of 3 operator resolvent-splitting. Mathematical Programming 182(1-
+    2):233–273. <https://arxiv.org/pdf/1802.07534>`_
+
+    `[5] J. Eckstein, D. Bertsekas (1992). On the Douglas—Rachford splitting method and the proximal point algorithm for maximal monotone operators. Mathematical Programming 55:293–318. <https://link.springer.com/content/pdf/10.1007/BF01581204.pdf>`_
+
 
     Args:
         L (ndarray): n x n numpy array of resolvent multipliers for step 1.
         M (ndarray): (n-1) x n numpy array of multipliers for steps 1 and 2.
-        lipschitz_values (array-like): n Lipschitz parameters for the subdifferentials.
-        mu_values (array-like): n convexity parameters for the subdifferentials.
+        lipschitz_values (array): n Lipschitz parameters for the subdifferentials.
+        mu_values (array): n convexity parameters for the subdifferentials.
         alpha (float): resolvent scaling parameter.
         gamma (float): step size parameter.
         wrapper (str): the name of the wrapper to be used.
@@ -108,7 +116,7 @@ def wc_reduced_frugal_resolvent_splitting(L, M, lipschitz_values, mu_values, alp
         >>> comparison()
         ``
         Contraction factors of different designs with standard step size vs optimal step size
-        Optimized step sizes from Bassett and Barkley [4] when n=4
+        Optimized step sizes from [4] when n=4
         Design   0.5 step size   Optimal step size
         ------------------------------------------
         MT       0.837           0.603
@@ -174,7 +182,7 @@ def comparison():
     lipschitz_values = [2, 2, 2, 2]
     mu_values = [1, 1, 1, 1]
 
-    # Malitsky-Tam [1]
+    # Malitsky-Tam [3]
     L_MT = array([[0,0,0,0],
                   [1,0,0,0],
                   [0,1,0,0],
@@ -194,7 +202,7 @@ def comparison():
         [-0.667, -0.667,  1.333,  0.   ],
         [-0.471, -0.471, -0.471,  1.414]])
 
-    # 2-Block [4]
+    # 2-Block [1]
     L_block = array([[0,0,0,0],
                      [0,0,0,0],
                      [1,1,0,0],
@@ -205,11 +213,11 @@ def comparison():
         [-0.707, -0.707,  0.   ,  1.414]])
 
     print('\nContraction factors of different designs with standard step size vs optimal step size')
-    print('Optimized step sizes from Bassett and Barkley [4] when n=4', '\n')
+    print('Optimized step sizes from [4] when n=4', '\n')
     print('Design\t', '0.5 step size\t', 'Optimal step size')
     print('-------------------------------------------')
 
-    # Malitsky-Tam [1]
+    # Malitsky-Tam [3]
     tau_MT = wc_reduced_frugal_resolvent_splitting(L_MT, M_MT, lipschitz_values, mu_values, gamma=0.5, verbose=-1)
     tau_MT_opt_step = wc_reduced_frugal_resolvent_splitting(L_MT, M_MT, lipschitz_values, mu_values, gamma=1.405, verbose=-1)
     # string format for the output of the function rounding to 3 decimal places with tab separation
@@ -220,14 +228,14 @@ def comparison():
     tau_f_opt_step = wc_reduced_frugal_resolvent_splitting(L_full, M_full, lipschitz_values, mu_values, gamma=1.09, verbose=-1)
     print('Full \t {:.3f} \t\t {:.3f}'.format(tau_f, tau_f_opt_step))
 
-    # Block [4]
+    # 2-Block [1]
     tau_b = wc_reduced_frugal_resolvent_splitting(L_block, M_block, lipschitz_values, mu_values, gamma=0.5, verbose=-1)
     tau_b_opt_step = wc_reduced_frugal_resolvent_splitting(L_block, M_block, lipschitz_values, mu_values, gamma=1.12, verbose=-1)
     print('Block \t {:.3f} \t\t {:.3f}'.format(tau_b, tau_b_opt_step))
     return 0
 
 if __name__ == "__main__":
-    # Douglas-Rachford [3]
+    # Douglas-Rachford [5]
     pepit_tau = wc_reduced_frugal_resolvent_splitting(
                             L=array([[0,0],[2,0]]), 
                             M=array([[1,-1]]),
@@ -239,7 +247,7 @@ if __name__ == "__main__":
                             verbose=1)
 
     # Comparison for 4 operators for Malitsky-Tam, Fully Connected, and 2-Block designs
-    # with and without optimized step sizes and W matrices
+    # with and without optimized step sizes from [1]
     comparison()
 
     
