@@ -76,20 +76,22 @@ def parallelAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstart
 def requiredQueues(man, W, L):
     '''
     Returns the queues for the given W and L matrices
-    Inputs:
-    man is the multiprocessing manager
-    W is the W matrix
-    L is the L matrix
+
+    Args:
+        man (multiprocessing manager): the manager
+        W (ndarray): is the n x n W matrix
+        L (ndarray): is the n x nL matrix
 
     Returns:
-    Queue_Array is the dictionary of the queues with keys (i,j) for the queues from i to j
-    Comms_Data is a list of the required comms data for each node
-    The comms data entry for node i is a dictionary with the following keys:
-    WQ: nodes which feed only W data into node i
-    up_LQ: nodes which feed only L data into node i
-    down_LQ: nodes which receive only L data from node i
-    up_BQ: nodes which feed both W and L data into node i, and node i feeds W back to
-    down_BQ: nodes which receive W and L data from node i
+        Queue_Array (dict): is the dictionary of the queues with keys (i,j) for the queues from i to j
+        Comms_Data (list): is a list of the required comms data for each node
+                            The comms data entry for node i is a dictionary with the following keys:
+
+                            - WQ: nodes which feed only W data into node i
+                            - up_LQ: nodes which feed only L data into node i
+                            - down_LQ: nodes which receive only L data from node i
+                            - up_BQ: nodes which feed both W and L data into node i, and node i feeds W back to
+                            - down_BQ: nodes which receive W and L data from node i
     '''
     # Get the number of nodes
     n = W.shape[0]
@@ -131,28 +133,36 @@ def requiredQueues(man, W, L):
     return Queue_Array, Comms_Data
 
 def subproblem(i, data, problem_builder, v0, W, L, comms_data, queue, gamma=0.5, alpha=1.0, itrs=501, terminate=None, verbose=False):
-    '''Solves the parallel subproblem for node i
-    Inputs:
-    i is the node number
-    data is a dictionary containing arguments for the problem
-    problem_builder is a pyprox class for the problem
-    W is the W matrix
-    L is the L matrix
-    comms_data is a dictionary with the following keys:
-    WQ: nodes which feed only W data into node i
-    up_LQ: nodes which feed only L data into node i
-    down_LQ: nodes which receive only L data from node i
-    up_BQ: nodes which feed both W and L data into node i, and node i feeds W back to
-    down_BQ: nodes which receive W and L data from node i
-    queue is the array of queues
-    gamma is the consensus parameter
-    itrs is the number of iterations
+    '''
+    Solves the parallel subproblem for node i
+
+    Args:
+        i (int): is the node number
+        data (dict): is a dictionary containing arguments for the problem
+        problem_builder (class): is a prox class for the problem
+        W (ndarray): is the n x n W matrix
+        L (ndarray): is the n x n L matrix
+        comms_data (dict): is a dictionary with the following keys
+
+                            - WQ: nodes which feed only W data into node i
+                            - up_LQ: nodes which feed only L data into node i
+                            - down_LQ: nodes which receive only L data from node i
+                            - up_BQ: nodes which feed both W and L data into node i, and node i feeds W back to
+                            - down_BQ: nodes which receive W and L data from node i
+        queue (dict): is the array of queues
+        gamma (float): is the consensus parameter
+        itrs (int): is the number of iterations
+        terminate (multiprocessing value): is the termination value
+        verbose (bool): is a boolean for verbose output
 
     Returns:
-    Dictionary with the following
-    w: the solution
-    v: the consensus variable
-    log: the log of the problem (if available)
+        tuple (x, results): 
+            x (ndarray): the solution
+            results (dict): is a dictionary with the following keys
+
+                            - x: the solution
+                            - v: the consensus variable
+                            - log: the log of the problem (if available)
     '''
 
     # Create the problem
@@ -243,17 +253,19 @@ def subproblem(i, data, problem_builder, v0, W, L, comms_data, queue, gamma=0.5,
     return {'x':w_value, 'v':local_v}
 
 def evaluate(n, terminateQueue, terminate, vartol, itrs, checkperiod=1, verbose=False):
-    """Evaluate the termination conditions and set the terminate value if needed
+    """
+    Evaluate the termination conditions and set the terminate value if needed
     The terminate value is set a number of iterations ahead of the convergence iteration
     
-    Inputs:
-    terminateQueue is the queue for termination
-    terminate is the multiprocessing value for termination
-    vartol is the variable tolerance
-    itrs is the number of iterations
-    verbose is a boolean for verbose output
-
-
+    Args:
+        n (int): the number of nodes
+        terminateQueue (list): the list of queues for termination
+        terminate (multiprocessing value): the termination value
+        vartol (float): the variable tolerance
+        itrs (int): the number of iterations
+        checkperiod (int): the number of iterations between checks (not implemented)
+        verbose (bool): True for verbose output
+        
     """
     w = []
     for i in range(n):

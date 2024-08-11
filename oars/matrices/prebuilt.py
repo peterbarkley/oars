@@ -32,14 +32,15 @@ def getMT(n):
 def getFull(n):
     '''
     Return Z, W for a fully connected graph with n nodes
-    and weight evenly distributed among all edges
+    and weight 2 evenly distributed among all edges
 
     Args:
         n (int): number of resolvents
 
     Returns:
-        Z (ndarray): L matrix n x n numpy array
-        W (ndarray): W matrix n x n numpy array
+        Z (ndarray): n x n numpy array for the graph Laplacian of a fully connected weighted graph with n nodes
+                     where the weights are evenly distributed among all edges and the weighted degree of each node is 2 
+        W (ndarray): n x n numpy array which is the same as Z
     '''
     
     v = 2/(n-1)

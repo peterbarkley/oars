@@ -44,3 +44,20 @@ Reduced Matrix: Incidence Matrix
 Block Matrix Constraints
 ------------------------
 .. autofunction:: oars.matrices.getBlockFixed
+
+Fully Connected Design
+----------------------
+.. autofunction:: oars.matrices.getFull
+
+Malitsky-Tam Design
+-------------------
+.. autofunction:: oars.matrices.getMT
+
+Ryu-Tam Design
+--------------
+.. autofunction:: oars.matrices.getRyu
+
+Minimum Iteration Time
+----------------------
+.. autofunction:: oars.matrices.getMinCycle
+   

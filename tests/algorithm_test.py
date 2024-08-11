@@ -63,7 +63,7 @@ def testQuad(parallel=False, verbose=False):
 
 
 
-def testSDP(parallel=False):
+def testSDP(parallel=False, verbose=False):
     print("Testing SDP")
     from oars.matrices import getFull, getBlockMin
     from oars.pep import getConstraintMatrices
@@ -76,7 +76,7 @@ def testSDP(parallel=False):
     data = [(2*n, 2*n), {'A':Ki, 'v':1}, {'A':K1, 'v':0}, -Ko] + Kp
     dim = len(data)
     Wd, Zd = getBlockMin(dim, dim//2)
-    x, results = solve(dim, data, proxlist, W=Wd, Z=Zd, parallel=parallel, itrs=100000, vartol=1e-5, gamma=0.8, checkperiod=10, verbose=False)
+    x, results = solve(dim, data, proxlist, W=Wd, Z=Zd, parallel=parallel, itrs=10000, gamma=0.8, checkperiod=10, verbose=verbose) #vartol=1e-5, 
     # print(x)
     # print(results)
     print(np.trace(Ko @ x))
@@ -90,5 +90,5 @@ if __name__ == "__main__":
     testSDP(parallel=False)
     print("Serial SDP Time:", time()-t)
     t = time()
-    testSDP(parallel=True)
+    testSDP(parallel=True, verbose=True)
     print("Parallel SDP Time:", time()-t)
