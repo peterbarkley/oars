@@ -1,8 +1,10 @@
-PEPit
-===============
+Examples
+=========
 
 .. toctree::
+   :numbered:
    :maxdepth: 2
    :caption: Contents:
 
-   PEPit/examples
+   examples/pepit
+

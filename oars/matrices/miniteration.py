@@ -11,17 +11,18 @@ def getMinCycle(n, objective=getSimilar, **kwargs):
         n (int): number of resolvents
         objective (function): function to minimize
         kwargs: additional keyword arguments for the algorithm
-            t (list): list of resolvent compute times
-            l (ndarray): n x n array of communication times
-            fixed_X (dict): dictionary of fixed communication relationships for Z
-            fixed_Y (dict): dictionary of fixed communication relationships for W
-            r (int): number of iterations to optimize over
-            minZ (int): the number of edges required for each resolvent in Z
-            minW (int): the number of edges required for each resolvent in W
-            Zedges (int): the minimum number of edges in Z 
-            Wedges (int): the minimum number of edges in W
-            weight (float): the coefficient for the number of edges in the objective
-            minfixed (bool, 'Z', or 'W'): whether to include the number of edges in the objective with weight weight
+
+            - t (list): list of resolvent compute times
+            - l (ndarray): n x n array of communication times
+            - fixed_X (dict): dictionary of fixed communication relationships for Z
+            - fixed_Y (dict): dictionary of fixed communication relationships for W
+            - r (int): number of iterations to optimize over
+            - minZ (int): the number of edges required for each resolvent in Z
+            - minW (int): the number of edges required for each resolvent in W
+            - Zedges (int): the minimum number of edges in Z as a whole
+            - Wedges (int): the minimum number of edges in W as a whole
+            - minfixed (bool, 'Z', or 'W'): whether to include the number of edges in the objective with weight weight
+            - weight (float): the coefficient for the number of edges in the objective
 
     Returns:
         Z (ndarray): Z matrix n x n numpy array
@@ -57,12 +58,23 @@ def setWarmstart(n, m, edges):
         for j in range(1, n//2):
             m.fy[k,j] = sec_flow_wt
 
-def getMinFlow(n, t=None, l=None, fixed_Z={}, fixed_W={}, fixed_X={}, fixed_Y={}, r=None, minfixed=True, weight=None, minZ=2, minW=1, Wedges=None, Zedges=None, solver='gurobi', **kwargs):
+def getMinFlow(n, t=None, l=None, fixed_X={}, fixed_Y={}, r=None, minfixed=True, weight=None, minZ=2, minW=1, Wedges=None, Zedges=None, solver='gurobi', **kwargs):
     """
     Get the minimum iteration time algorithm using a flow formulation
 
     Args:
-
+        n (int): number of resolvents
+        t (list): list of resolvent compute times
+        l (ndarray): n x n array of communication times
+        fixed_X (dict): dictionary of fixed communication relationships for Z
+        fixed_Y (dict): dictionary of fixed communication relationships for W
+        r (int): number of iterations to optimize over
+        minZ (int): the number of edges required for each resolvent in Z
+        minW (int): the number of edges required for each resolvent in W
+        Zedges (int): the minimum number of edges in Z as a whole
+        Wedges (int): the minimum number of edges in W as a whole
+        minfixed (bool, 'Z', or 'W'): whether to include the number of edges in the objective with weight weight
+        weight (float): the coefficient for the number of edges in the objective
 
     Returns:
         Z_fixed (dict): dictionary of fixed communication relationships for Z
@@ -157,7 +169,13 @@ def getMinFlow(n, t=None, l=None, fixed_Z={}, fixed_W={}, fixed_X={}, fixed_Y={}
         m.source.add(sum(m.fy[k,j] for j in range(n) if j != k) == b[k] + sum(m.fy[j,k] for j in range(n) if j != k))
         
     # Set fixed values
-    # Future work
+    m.fixedX = pyo.ConstraintList()
+    for idx,val in fixed_X.items():
+        m.fixedX.add(m.x[idx] == val)
+
+    m.fixedY = pyo.ConstraintList()
+    for idx,val in fixed_Y.items():
+        m.fixedY.add(m.y[idx] == val)
 
     # Edge constraints
     m.wxc = pyo.ConstraintList()

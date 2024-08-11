@@ -10,8 +10,16 @@ Welcome to OARS's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   self
-   pepit
+   self   self
+   quickstart
+   api
+   examples
+   whatsnew
+   contributing
+   
+
+.. include:: ../../README.md
+   :parser: myst_parser.sphinx_
 
 Indices and tables
 ==================

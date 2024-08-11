@@ -1,44 +1,41 @@
 import numpy as np
 import multiprocessing as mp
 from oars.algorithms.helpers import ConvergenceChecker, getWarmPrimal
+from time import time
 
-def parallelAlgorithm(n, data, resolvents, W, L, warmstartprimal=None, warmstartdual=None, itrs=1001, gamma=0.9, alpha=1.0, vartol=None, objtol=None, earlyterm=None, detectcycle=0, objective=None, verbose=False):
+def parallelAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdual=None, itrs=1001, gamma=0.9, alpha=1.0, vartol=None,  checkperiod=1, verbose=False):
     """Run the parallel algorithm
     Args:
-        n (int): the number of nodes
-        data (list): list containing the problem data for each node
+        n (int): the number of resolvents
+        data (list): list containing the problem data for each resolvent
         resolvents (list): list of :math:`n` resolvent functions
         W (ndarray): size (n, n) ndarray for the :math:`W` matrix
-        L (ndarray): size (n, n) ndarray for the :math:`L` matrix
+        Z (ndarray): size (n, n) ndarray for the :math:`Z` matrix
         warmstartprimal (ndarray, optional): resolvent.shape ndarray for :math:`x` in v^0
         warmstartdual (list, optional): is a list of n ndarrays for :math:`u` which sums to 0 in v^0
         itrs (int, optional): the number of iterations
-        gamma (float, optional): parameter in :math:`v^{k+1} = v^k - \gamma W x^k`
+        gamma (float, optional): parameter in :math:`v^{k+1} = v^k - \\gamma W x^k`
         alpha (float, optional): the resolvent step size in :math:`x^{k+1} = J_{\\alpha F^i}(y^k)`
         vartol (float, optional): is the variable tolerance
-        objtol (float, optional): is the objective tolerance
         earlyterm (int, optional): the number of variables that must agree to terminate early and solve explicitly for the remaining variables
         detectcycle (int, optional): the number of iterations to check for cycling
-        objective (function, optional): the objective function
         verbose (bool, optional): True for verbose output
 
     Returns:
         xbar (ndarray): the solution
         results (list): list of dictionaries with the results for each node
     """
-    
+    L = -np.tril(Z, -1)
+
     # Create the queues
     man = mp.Manager()
     Queue_Array, Comms_Data = requiredQueues(man, W, L)
-    if vartol is not None or objtol is not None:
+    if vartol is not None:
         terminate = man.Value('i',0) #man.Event()
-        Queue_Array['terminate'] = man.Queue()
+        Queue_Array['terminate'] = [man.Queue() for _ in range(n)]
+
         # Create evaluation process
-        if len(data) > n:
-            d = data[n]
-        else:
-            d = None
-        evalProcess = mp.Process(target=evaluate, args=(Queue_Array['terminate'], terminate, vartol, objtol, d, objective, itrs, verbose))
+        evalProcess = mp.Process(target=evaluate, args=(n, Queue_Array['terminate'], terminate, vartol, itrs, checkperiod, verbose))
         evalProcess.start()
     else:
         terminate = None
@@ -69,11 +66,7 @@ def parallelAlgorithm(n, data, resolvents, W, L, warmstartprimal=None, warmstart
     if terminate is not None:        
         evalProcess.join()
         xdev = sum(abs(results[i]['x'] - xbar) for i in range(n))
-        if objective is not None and earlyterm is not None and (0 < np.sum(xdev != 0) < earlyterm):
-            it = np.nditer(xbar, flags=['multi_index'])
-            fixed = {tuple(it.multi_index):xbar[it.multi_index] for i in it if xdev[it.multi_index] == 0 }
-            # Solve fixed problem
-            xbar = objective(fixdict=fixed, verbose=verbose)
+
 
     if verbose:
         results[0]['alg_time'] = alg_time
@@ -174,13 +167,14 @@ def subproblem(i, data, problem_builder, v0, W, L, comms_data, queue, gamma=0.5,
     itr = 0
     while itr < itrs:
         if terminate is not None and terminate.value != 0:
-            print('Node', i, 'received terminate value', terminate.value, 'on iteration', itr)
+            if verbose:
+                print('Node', i, 'received terminate value', terminate.value, 'on iteration', itr)
             if terminate.value < itr:
                 break
                 #terminate.value = itr + 1
             itrs = terminate.value
-        # if verbose and itr % 1000 == 999:
-        #     print(f'Node {i} iteration {itr}')
+        if verbose and itr % 1000 == 999:
+            print(f'Node {i} iteration {itr}')
 
         # Get data from upstream L queue
         for k in comms_data['up_LQ']:
@@ -194,14 +188,14 @@ def subproblem(i, data, problem_builder, v0, W, L, comms_data, queue, gamma=0.5,
 
         # Solve the problem
         w_temp = resolvent.prox(local_v + local_r, alpha)
-        if verbose:
-            delta = np.linalg.norm(w_temp - w_value, 'fro')
-            print("Node", i, "Itr", itr, "Var Difference", delta)
+        # if verbose:
+        #     delta = np.linalg.norm(w_temp - w_value, 'fro')
+        #     print("Node", i, "Itr", itr, "Var Difference", delta)
         w_value = w_temp
 
         # Terminate if needed
-        if i==0 and terminate is not None:
-            queue['terminate'].put(w_value)
+        if terminate is not None:
+            queue['terminate'][i].put(w_value)
             
 
         # Put data in downstream queues
@@ -227,9 +221,9 @@ def subproblem(i, data, problem_builder, v0, W, L, comms_data, queue, gamma=0.5,
         #v_temp += sum([W[i,k]*queue[k,i].get() for k in comms_data['down_BQ']])
         
         v_update = gamma*(W[i,i]*w_value+v_temp)
-        if verbose:
-            delta = np.linalg.norm(v_update, 'fro')
-            print("Node", i, "Itr", itr, "Consensus Difference", delta)
+        # if verbose:
+        #     delta = np.linalg.norm(v_update, 'fro')
+        #     print("Node", i, "Itr", itr, "Consensus Difference", delta)
         local_v = local_v - v_update
         
         # Zero out v_temp without reallocating memory
@@ -248,7 +242,7 @@ def subproblem(i, data, problem_builder, v0, W, L, comms_data, queue, gamma=0.5,
         return {'x':w_value, 'v':local_v, 'log':resolvent.log}
     return {'x':w_value, 'v':local_v}
 
-def evaluate(terminateQueue, terminate, vartol, objtol, data, objective, itrs, earlyterm=None, detectcycle=0, verbose=False):
+def evaluate(n, terminateQueue, terminate, vartol, itrs, checkperiod=1, verbose=False):
     """Evaluate the termination conditions and set the terminate value if needed
     The terminate value is set a number of iterations ahead of the convergence iteration
     
@@ -256,57 +250,34 @@ def evaluate(terminateQueue, terminate, vartol, objtol, data, objective, itrs, e
     terminateQueue is the queue for termination
     terminate is the multiprocessing value for termination
     vartol is the variable tolerance
-    objtol is the objective tolerance
-    data is the data for the objective function
-    objective is the objective function
     itrs is the number of iterations
     verbose is a boolean for verbose output
 
 
     """
-    x = terminateQueue.get()
+    w = []
+    for i in range(n):
+        w.append(terminateQueue[i].get())
     #n = len(x) # x is just from node 0
     varcounter = 0
-    objcounter = 0
     itr = 0
     itrs -= 10
     while itr < itrs:
         if verbose:print('iteration', itr+1)
-        prev_x = x
-        x = terminateQueue.get()        
-        if vartol is not None:
-            delta = np.linalg.norm(x-prev_x)
-            print("vartol check delta", delta)
-            if delta < vartol:
-                varcounter += 1
-                if varcounter >= 10:
-                    terminate.value = itr + 10
-                    if verbose:
-                        print('Converged on vartol on iteration', itr)
-                    break
-            else:
-                varcounter = 0
-        if objtol is not None:
-            if abs(objective(x)-objective(prev_x)) < objtol:
-                objcounter += 1
-                if objcounter >= 10:
-                    terminate.value = itr + 10
-                    if verbose:
-                        print('Converged on objtol on iteration', itr)
-                    break
-            else:
-                objcounter = 0
-        if earlyterm is not None:
-            xbar = np.mean(x, axis=0)
-            xdev = sum(abs(x[i] - xbar) for i in range(len(x)))
-            if np.sum(xdev != 0) < earlyterm:
+        prev_w = w.copy()
+        for i in range(n):
+            w[i] = terminateQueue[i].get()
+        delta = sum(np.linalg.norm(w[i]-prev_w[i]) for i in range(n))
+        if verbose:print("vartol check delta", delta)
+        if delta < vartol:
+            varcounter += 1
+            if varcounter >= 10:
                 terminate.value = itr + 10
                 if verbose:
-                    print('Converged on earlyterm on iteration', itr)
-                it = np.nditer(xbar, flags=['multi_index'])
-                fixed = {tuple(it.multi_index):xbar[it.multi_index] for i in it if xdev[it.multi_index] == 0 }
-                # Solve fixed problem
-                x = objective(fixdict=fixed)
-                # Return solution
+                    print('Converged on vartol on iteration', itr)
+                break
+        else:
+            varcounter = 0
+
         itr += 1
   

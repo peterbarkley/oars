@@ -2,6 +2,34 @@
 # Does not work yet
 # Distributed algorithm for the WTA problem
 def distributedAlgorithm(n, resolvents, W, Z, data=None, warmstartprimal=None, warmstartdual=None, itrs=1001, gamma=0.9, alpha=1.0, vartol=None, objtol=None, earlyterm=None, detectcycle=0, objective=None, verbose=False):
+    """
+    Distributed algorithm for frugal resolvent splitting
+
+    Args:
+        n (int): the number of resolvents
+        resolvents (list): list of resolvent classes
+        W (ndarray): size (n, n) ndarray for the W matrix
+        Z (ndarray): size (n, n) ndarray for the Z matrix
+        data (list): list containing the problem data for each resolvent
+        warmstartprimal (ndarray, optional): resolvent.shape ndarray for x in v^0
+        warmstartdual (list, optional): is a list of n ndarrays for u which sums to 0 in v^0
+        itrs (int, optional): the number of iterations
+        gamma (float, optional): parameter in v^{k+1} = v^k - \gamma W x^k
+        alpha (float, optional): the resolvent step size in x^{k+1} = J_{\alpha F^i}(y^k)
+        vartol (float, optional): is the variable tolerance
+        objtol (float, optional): is the objective tolerance
+        earlyterm (int, optional): the number of iterations to run before checking for termination
+        detectcycle (int, optional): the number of iterations to check for a cycle
+        objective (function, optional): the objective function
+        verbose (bool, optional): True for verbose output
+
+    Returns:
+        tuple (x, results): the solution and a list of dictionaries with the results for each resolvent
+
+            x (ndarray): the solution
+            results (list): list of dictionaries with the results for each resolvent
+    """
+
     # nodes = L.shape[0]
     comm = MPI.COMM_WORLD
     i = comm.Get_rank()

@@ -4,13 +4,25 @@ from scipy.linalg import ldl
 
 def getCore(n, fixed_Z={}, fixed_W={}, c=None, eps=0.0, gamma=1.0, adj=False, **kwargs):
     '''
-    Get core variables and constraints for the algorithm
+    Get core variables and constraints for the algorithm design SDP
+
+    :math:`W \\mathbb{1} = 0`
+
+    :math:`Z \\mathbb{1} = 0`
+
+    :math:`\\lambda_{1}(W) + \\lambda_{2}(W) \\geq c`
+
+    :math:`Z - W \\succeq 0`
+
+    :math:`\\mathrm{diag}(Z) = Z_{11}\\mathbb{1}`
+
+    :math:`2 - \\varepsilon \\leq Z_{11} \\leq 2 + \\varepsilon`
 
     Args:
         n (int): number of nodes
         fixed_Z (dict): dictionary of fixed Z values with keys as (i,j) tuples
         fixed_W (dict): dictionary of fixed W values with keys as (i,j) tuples
-        c (float): connectivity parameter
+        c (float): connectivity parameter (default 2*(1-cos(pi/n)))
         eps (float): epsilon for Z[0,0] = 2 + eps constraint
         gamma (float): scaling parameter for Z
         adj (bool): whether to use the edge adjacency formulation
@@ -48,30 +60,28 @@ def getCore(n, fixed_Z={}, fixed_W={}, c=None, eps=0.0, gamma=1.0, adj=False, **
             2-eps <= Z[0,0],
             Z[0,0] <= 2+eps] # bounds on Z diagonal entries
     
-    cons += [Z[i,i] == Z[0,0] for i in range(1,n)] # Z diagonal entries equal Z[0,0]
+    cons += [Z[i,i] == Z[0,0] for i in range(1,n)] # Z diagonal entries equal to one another
 
-    # Set fixed L and W values
-    if not adj:
-        cons += [Z[idx] == val for idx,val in fixed_Z.items()]
-        cons += [W[idx] == val for idx,val in fixed_W.items()]
+    # Set fixed Z and W values
+    cons += [Z[idx] == val for idx,val in fixed_Z.items()]
+    cons += [W[idx] == val for idx,val in fixed_W.items()]
 
     return Z, W, cons    
-
 
 def postprocess(prob, Z, W, eps=0.0, **kwargs):
     '''
     Postprocess the results of the optimization
 
     Args:
-    prob: cvxpy problem object
-    eps: epsilon for Z[0,0] = 2 + eps constraint
-    Z: n x n cvxpy decision variable matrix for Z
-    W: n x n cvxpy decision variable matrix for W
+        prob (cvxpy problem): cvxpy problem object
+        eps (float): allowable deviation from 2 in Z diagonal
+        Z (cvxpy variable): n x n cvxpy decision variable matrix for Z
+        W (cvxpy variable): n x n cvxpy decision variable matrix for W
 
     Returns:
-    L: n x n numpy array of resolvent multipliers
-    W: n x n numpy array of consensus multipliers
-    alpha: scaling factor for resolvent if eps is nonzero
+        Z (ndarray): n x n numpy array of resolvent multipliers
+        W (ndarray): n x n numpy array of consensus multipliers
+        alpha (float): scaling factor for resolvent if eps is nonzero
     '''
 
     alpha = 1
@@ -90,11 +100,17 @@ def postprocess(prob, Z, W, eps=0.0, **kwargs):
 
 def getSimilar(n, **kwargs):
     '''
-    Simple version of the algorithm using W and Z
+    Find convergence matrix W and consensus matrix Z
+    that minimize :math:`\\|Z-W\\|`
 
     Args:
-        n (int): number of nodes
+        n (int): number of resolvents
         kwargs: keyword arguments
+
+            - c (float): connectivity parameter
+            - eps (float): allowable deviation from 2 in Z diagonal
+            - gamma (float): scaling parameter for Z
+            - adj (bool): whether to use the edge adjacency formulation
 
     Returns:
         Z (ndarray): n x n consensus matrix
@@ -122,23 +138,28 @@ def getSimilar(n, **kwargs):
 
     return postprocess(prob, Z.value, W.value, **kwargs)
 
-def getMaxFiedlerSum(n, vz=1.0, vw=1.0, **kwargs):
-    '''Find convergence matrix W and consensus matrix Z
-    that maximize the sum of the Fiedler values for W and Z
+def getMaxConnectivity(n, vz=1.0, vw=1.0, **kwargs):
+    '''
+    Find convergence matrix W and consensus matrix Z
+    that maximize the sum of the algebraic connectivity for W and Z
 
-    Inputs:
-    n: number of nodes
-    fixed_Z: dictionary of fixed Z values with keys as (i,j) tuples
-    fixed_W: dictionary of fixed W values with keys as (i,j) tuples
-    vz: weight for Z Fiedler value
-    vw: weight for W Fiedler value
-    c: connectivity parameter
-    eps: epsilon for |Z[0,0] - 2| <= eps constraint
-    **kwargs: keyword arguments for verbosity and cvxpy solver
-    Outputs:
-    L: (n,n) resolvent matrix
-    W: (n,n) consensus matrix
-    alpha: scaling factor for resolvent if eps is nonzero
+    Args:
+        n (int): number of resolvents
+        fixed_Z (dict): dictionary of fixed Z values with keys as (i,j) tuples
+        fixed_W (dict): dictionary of fixed W values with keys as (i,j) tuples
+        vz (float): weight for Z Fiedler value
+        vw (float): weight for W Fiedler value
+        **kwargs: keyword arguments for verbosity and cvxpy solver
+
+                    - c (float): connectivity parameter
+                    - eps (float): allowable deviation from 2 in Z diagonal
+                    - gamma (float): scaling parameter for Z
+                    - adj (bool): whether to use the edge adjacency formulation
+
+    Returns:
+        Z (ndarray): n x n resolvent matrix
+        W (ndarray): n x n consensus matrix
+        alpha (float): scaling factor for resolvent if eps is nonzero
     '''
 
     # Set default values
@@ -171,22 +192,26 @@ def getMaxFiedlerSum(n, vz=1.0, vw=1.0, **kwargs):
     return postprocess(prob, Z.value, W.value, **kwargs)
 
 def getMinSLEM(n, vz=1.0, vw=1.0, **kwargs):
-    """Find convergence matrix W and consensus matrix Z
+    """
+    Find convergence matrix W and consensus matrix Z
     that minimize the sum of the SLEM values for W and Z
 
     Args:
-    n: number of agents
-    fixed_Z: dictionary of fixed Z values with keys as (i,j) tuples
-    fixed_W: dictionary of fixed W values with keys as (i,j) tuples
-    vz: weight for Z SLEM value
-    vw: weight for W SLEM value
-    c: connectivity parameter
-    eps: epsilon for |Z[0,0] - 2| <= eps constraint
-    **kwargs: keyword arguments for verbosity and cvxpy solver
+        n (int): number of resolvents
+        fixed_Z (dict): dictionary of fixed Z values with keys as (i,j) tuples
+        fixed_W (dict): dictionary of fixed W values with keys as (i,j) tuples
+        vz (float): weight for Z SLEM value
+        vw (float): weight for W SLEM value
+        **kwargs: keyword arguments for verbosity and cvxpy solver
+
+            - c (float): connectivity parameter
+            - eps (float): allowable deviation from 2 in Z diagonal
+            - gamma (float): scaling parameter for Z
+            - adj (bool): whether to use the edge adjacency formulation            
     Returns:
-    L: (n,n) resolvent matrix (Z = 2I - L - L.T)
-    W: (n,n) consensus matrix
-    alpha: scaling factor for resolvent if eps is nonzero
+        Z (ndarray): n x n resolvent matrix
+        W (ndarray): n x n consensus matrix
+        alpha (float): scaling factor for resolvent if eps is nonzero
     """
 
     verbose = False
@@ -227,23 +252,26 @@ def getMinSLEM(n, vz=1.0, vw=1.0, **kwargs):
     return postprocess(prob, Z.value, W.value, **kwargs)
 
 def getMinResist(n, vz=1.0, vw=1.0, **kwargs):
-    """Find convergence matrix W and consensus matrix Z
+    """
+    Find convergence matrix W and consensus matrix Z
     that minimize the sum of the total effective resistances for W and Z
 
     Args:
-    n: number of agents
-    fixed_Z: dictionary of fixed Z values with keys as (i,j) tuples
-    fixed_W: dictionary of fixed W values with keys as (i,j) tuples
-    vz: weight for Z TER value
-    vw: weight for W TER value
-    c: connectivity parameter
-    eps: epsilon for |Z[0,0] - 2| <= eps constraint
-    **kwargs: keyword arguments for verbosity and cvxpy solver
+        n (int): number of resolvents
+        fixed_Z (dict): dictionary of fixed Z values with keys as (i,j) tuples
+        fixed_W (dict): dictionary of fixed W values with keys as (i,j) tuples
+        vz (float): weight for Z TER value
+        vw (float): weight for W TER value
+        **kwargs: keyword arguments for verbosity and cvxpy solver
 
+            - c (float): connectivity parameter
+            - eps (float): allowable deviation from 2 in Z diagonal
+            - gamma (float): scaling parameter for Z
+            - adj (bool): whether to use the edge adjacency formulation
     Returns:
-    Z: (n,n) resolvent matrix
-    W: (n,n) consensus matrix
-    alpha: scaling factor for resolvent if eps is nonzero
+        Z (ndarray): n x n resolvent matrix
+        W (ndarray): n x n consensus matrix
+        alpha: scaling factor for resolvent if eps is nonzero
     """
 
     verbose = False
@@ -322,11 +350,15 @@ def getBlockMin(n, m, objective=getSimilar, **kwargs):
         m (int or list of ints): block size, either an integer or a list of integers
         objective (function): objective function
         kwargs: keyword arguments for the objective function
-        
+
+            - c (float): connectivity parameter
+            - eps (float): allowable deviation from 2 in Z diagonal
+            - gamma (float): scaling parameter for Z
+            - adj (bool): whether to use the edge adjacency formulation        
     Returns:
-        Z: (n,n) resolvent matrix
-        W: (n,n) consensus matrix
-        alpha: scaling factor for resolvent if eps is nonzero
+        Z (ndarray): (n,n) resolvent matrix
+        W (ndarray): (n,n) consensus matrix
+        alpha (float): scaling factor for resolvent if eps is nonzero
     
     '''
     Z_fixed, W_fixed = getBlockFixed(n, m)
@@ -374,7 +406,6 @@ def getMfromWEigen(W):
     #this must the first eigval since eigvals are in ascending order
     #according the numpy docs
     return (vecs[:, 1:] * np.sqrt(vals[1:])).T    
-
 
 def getIncidence(W):
     '''
