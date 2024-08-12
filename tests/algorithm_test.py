@@ -32,17 +32,15 @@ def testQuad(parallel=False, verbose=False):
     # print("dx", dx)
     # print("dresults", dresults)
 
-def testSDP(parallel=False, verbose=False):
+def testSDP(tgt_n=3, parallel=False, verbose=False):
     print("Testing SDP")
     from oars.matrices import getFull, getBlockMin
     from oars.pep import getConstraintMatrices
-    import proxs
-    n = 3
-    Z, W = getFull(n)
+    Z, W = getFull(tgt_n)
     Ko, K1, Ki, Kp = getConstraintMatrices(Z, W, gamma=0.5)
 
     proxlist = [psdCone, traceEqualityIndicator, traceEqualityIndicator, linearSubdiff] + [traceHalfspaceIndicator for _ in Kp]
-    data = [(2*n, 2*n), {'A':Ki, 'v':1}, {'A':K1, 'v':0}, -Ko] + Kp
+    data = [(2*tgt_n, 2*tgt_n), {'A':Ki, 'v':1}, {'A':K1, 'v':0}, -Ko] + Kp
     dim = len(data)
     Zd, Wd = getBlockMin(dim, dim//2)
     x, results = solve(dim, data, proxlist, W=Wd, Z=Zd, parallel=parallel, itrs=10000, gamma=0.8, checkperiod=10, verbose=verbose) #vartol=1e-5, 
@@ -58,6 +56,6 @@ if __name__ == "__main__":
     t = time()
     testSDP(parallel=False)
     print("Serial SDP Time:", time()-t)
-    t = time()
-    testSDP(parallel=True, verbose=True)
-    print("Parallel SDP Time:", time()-t)
+    # t = time()
+    # testSDP(parallel=True, verbose=True)
+    # print("Parallel SDP Time:", time()-t)

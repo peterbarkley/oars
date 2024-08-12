@@ -44,8 +44,8 @@ def distributedAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmst
         warmstartprimal (ndarray, optional): resolvent.shape ndarray for x in v^0
         warmstartdual (list, optional): is a list of n ndarrays for u which sums to 0 in v^0
         itrs (int, optional): the number of iterations
-        gamma (float, optional): parameter in v^{k+1} = v^k - \gamma W x^k
-        alpha (float, optional): the resolvent step size in x^{k+1} = J_{\alpha F^i}(y^k)
+        gamma (float, optional): step size for the consensus step
+        alpha (float, optional): the resolvent step size 
         vartol (float, optional): is the variable tolerance
         objtol (float, optional): is the objective tolerance
         earlyterm (int, optional): the number of iterations to run before checking for termination
@@ -69,7 +69,7 @@ def distributedAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmst
     # nodes = n-1
 
     if i == 0:
-        initialization(n, data, resolvents, W, Z, gamma, alpha)
+        initialize(n, data, resolvents, W, Z, gamma, alpha)
         
         # Run subproblems
         print("Node 0 running subproblem", flush=True)
@@ -284,7 +284,7 @@ def evaluate(n, shape, comm, vartol=1e-7, itrs=100):
     print(f'Reached termination criteria on Iteration {itr}', flush=True)
 
     # Terminate the other processes
-    advance = 50
+    advance = n*2
     terminate_itr = itr + advance
     if itr < itrs - advance:
         # t_itr = np.array(terminate_itr, 'i')

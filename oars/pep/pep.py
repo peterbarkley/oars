@@ -292,7 +292,7 @@ def getReducedContractionFactor(Z, M, ls=None, mus=None, operators=None, alpha=1
 
     return prob.value
 
-def getContractionFactor(Z, W, ls=None, mus=None, operators=None, alpha=1, gamma=0.5, verbose=False):
+def getContractionFactor(Z, W, ls=None, mus=None, operators=None, alpha=1, gamma=0.5, verbose=False, **kwargs):
     """
     Get the contraction factor for the resolvent splitting method
     :math:`v = v - \\gamma W x` for given `Z` and `W` matrices
@@ -306,6 +306,7 @@ def getContractionFactor(Z, W, ls=None, mus=None, operators=None, alpha=1, gamma
         alpha (float): proximal scaling parameter
         gamma (float): step size
         verbose (bool): verbose output
+        kwargs: additional arguments for cvxpy solver
 
     Returns:
         tau (float): contraction factor
@@ -327,7 +328,7 @@ def getContractionFactor(Z, W, ls=None, mus=None, operators=None, alpha=1, gamma
     objective = cvx.Maximize(cvx.trace(Ko @ G))
 
     prob = cvx.Problem(objective, constraints)
-    prob.solve()
+    prob.solve(verbose=verbose, **kwargs)
     if prob.status != 'optimal':
         print('Problem not solved', prob.status)
         return None
