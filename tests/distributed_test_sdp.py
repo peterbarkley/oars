@@ -17,7 +17,7 @@ if n > mpi_size - 1:
 title = "Quad_Test"
 gamma = 0.8
 itrs = 7000
-vartol = 1e-5
+vartol = None #1e-5
 shape = (2*tgt_n, 2*tgt_n)
 Z, W = getBlockMin(n, n//2, objective=getMinResist)
 

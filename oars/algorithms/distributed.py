@@ -208,11 +208,6 @@ def subproblem(i, data, resolvents, W, Z, comms_data, comm, gamma=0.5, itrs=100,
         # Solve the problem
         w_value = resolvent.prox(local_v + local_r)
 
-        # Terminate if needed
-        if i==0 and vartol is not None and not terminated:
-             #print(f'Node {i} w_value sending for eval: {w_value}', flush=True)
-             comm.Send(w_value, dest=n, tag=itr)
-
         # Put data in downstream queues
         for k in comms_data['down_ZQ']:
             comm.Isend(w_value, dest=k, tag=itr)
@@ -240,7 +235,12 @@ def subproblem(i, data, resolvents, W, Z, comms_data, comm, gamma=0.5, itrs=100,
         
 
         local_v = local_v - gamma*(W[i,i]*w_value+v_temp)
-        
+                
+        # Terminate if needed
+        if i==0 and vartol is not None and not terminated:
+             #print(f'Node {i} w_value sending for eval: {w_value}', flush=True)
+             comm.Send(local_v, dest=n, tag=itr)
+
         # Zero out v_temp without reallocating memory
         v_temp.fill(0)
         local_r.fill(0)
