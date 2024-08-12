@@ -10,12 +10,11 @@ Welcome to OARS's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   self   self
+   self
    quickstart
    api
    examples
    whatsnew
-   contributing
    
 
 .. include:: ../../README.md

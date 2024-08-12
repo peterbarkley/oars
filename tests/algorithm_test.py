@@ -1,36 +1,7 @@
 import numpy as np
 from oars import solveMT, solve
 from time import time
-
-class absprox():
-    '''L1 Norm Resolvent function'''
-    def __init__(self, data):
-        self.data = data
-        self.shape = data.shape
-
-    # Evaluates L1 norm
-    def __call__(self, x):
-        u = x - self.data
-        return sum(abs(u))
-
-    # Evaluates L1 norm resolvent
-    def prox(self, y, tau=1.0):
-        u = y - self.data
-        r = max(abs(u)-tau, 0)*np.sign(u) + self.data
-        # print(f"Data: {self.data}, y: {y}, u: {u}, r: {r}", flush=True)
-        return r
-
-    def __repr__(self):
-        return "L1 norm resolvent"
-        
-
-class quadprox():
-    def __init__(self, data):
-        self.data = data
-        self.shape = data.shape
-    
-    def prox(self, y, tau=1.0):
-        return (y+tau*self.data)/(1+tau)
+from proxs import *
 
 def testQuad(parallel=False, verbose=False):
     """
@@ -61,8 +32,6 @@ def testQuad(parallel=False, verbose=False):
     # print("dx", dx)
     # print("dresults", dresults)
 
-
-
 def testSDP(parallel=False, verbose=False):
     print("Testing SDP")
     from oars.matrices import getFull, getBlockMin
@@ -72,10 +41,10 @@ def testSDP(parallel=False, verbose=False):
     Z, W = getFull(n)
     Ko, K1, Ki, Kp = getConstraintMatrices(Z, W, gamma=0.5)
 
-    proxlist = [proxs.psdCone, proxs.traceEqualityIndicator, proxs.traceEqualityIndicator, proxs.linearSubdiff] + [proxs.traceHalfspaceIndicator for _ in Kp]
+    proxlist = [psdCone, traceEqualityIndicator, traceEqualityIndicator, linearSubdiff] + [traceHalfspaceIndicator for _ in Kp]
     data = [(2*n, 2*n), {'A':Ki, 'v':1}, {'A':K1, 'v':0}, -Ko] + Kp
     dim = len(data)
-    Wd, Zd = getBlockMin(dim, dim//2)
+    Zd, Wd = getBlockMin(dim, dim//2)
     x, results = solve(dim, data, proxlist, W=Wd, Z=Zd, parallel=parallel, itrs=10000, gamma=0.8, checkperiod=10, verbose=verbose) #vartol=1e-5, 
     # print(x)
     # print(results)

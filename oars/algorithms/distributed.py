@@ -1,7 +1,37 @@
+#!/usr/bin/env python3
+from mpi4py import MPI
+import numpy as np
+
+def initialize(comm, n, data, resolvents, W, Z, gamma=0.8, alpha=1.0):
+    """
+    Initialize the resolvents and variables
+
+    Args:
+        n (int): the number of resolvents
+        data (list): list of dictionaries containing the problem data
+        resolvents (list): list of uninitialized resolvent classes
+        W (ndarray, optional): size (n, n) ndarray for the W matrix
+        Z (ndarray, optional): size (n, n) ndarray for the Z matrix
+        gamma (float, optional): the consensus parameter
+        alpha (float, optional): the resolvent scaling parameter
+
+    """
+
+    Comms_Data = requiredComms(Z, W)
+
+    # Distribute the data
+    for j in range(1, n):
+        #print("Node 0 sending data to node", j, flush=True)
+
+        comm.send(data[j], dest=j, tag=44) # Data
+        comm.send(resolvents[j], dest=j, tag=17) # Resolvent
+        comm.send(Comms_Data[j], dest=j, tag=33) # Comms data
+
+    return Comms_Data[0]
 
 # Does not work yet
-# Distributed algorithm for the WTA problem
-def distributedAlgorithm(n, resolvents, W, Z, data=None, warmstartprimal=None, warmstartdual=None, itrs=1001, gamma=0.9, alpha=1.0, vartol=None, objtol=None, earlyterm=None, detectcycle=0, objective=None, verbose=False):
+# Distributed algorithm
+def distributedAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdual=None, itrs=1001, gamma=0.9, alpha=1.0, vartol=None, verbose=False):
     """
     Distributed algorithm for frugal resolvent splitting
 
@@ -39,16 +69,8 @@ def distributedAlgorithm(n, resolvents, W, Z, data=None, warmstartprimal=None, w
     # nodes = n-1
 
     if i == 0:
+        initialization(n, data, resolvents, W, Z, gamma, alpha)
         
-        Comms_Data = requiredComms(Z, W)
-
-        # Distribute the data
-        for j in range(1, n):
-            #print("Node 0 sending data to node", j, flush=True)
-
-            comm.send(data, dest=j, tag=44) # Data
-            comm.send(resolvents[j], dest=j, tag=17) # Resolvent
-            comm.send(Comms_Data[j], dest=j, tag=33) # Comms data
         # Run subproblems
         print("Node 0 running subproblem", flush=True)
         #print("Comms data 0", Comms_Data[0], flush=True)
@@ -100,14 +122,10 @@ def distributedAlgorithm(n, resolvents, W, Z, data=None, warmstartprimal=None, w
         #comm.Bcast(W, root=0)
         evaluate(m, comm, vartol=1e-5, itrs=itrs) 
 
-
-
-
-
-
 def requiredComms(Z, W):
     '''
     Returns a dictionary of the communications required by the given W and L matrices
+
     Args:
         Z (ndarray): the Z matrix
         W (ndarray): the W matrix
@@ -146,7 +164,7 @@ def requiredComms(Z, W):
     return Comms_Data
 
 #def solve(s, itrs=100, gamma=0.5, verbose=False, terminate=None):
-def subproblem(i, data, resolvents, W, Z, comms_data, comm, gamma=0.5, itrs=100, verbose=False, vartol=None, terminate=None):
+def subproblem(i, data, resolvents, W, Z, comms_data, comm, gamma=0.5, itrs=100, vartol=None, verbose=False):
     
     # comm = MPI.COMM_WORLD
     # i = comm.Get_rank()
@@ -165,19 +183,17 @@ def subproblem(i, data, resolvents, W, Z, comms_data, comm, gamma=0.5, itrs=100,
     v_temp = np.zeros(s, dtype=np.float64)
     n = W.shape[0]
     itr = 0
+    t_itr = np.array(itrs, 'i')
     terminated = False
     while itr < itrs:
         if vartol is not None and comm.Iprobe(source=n, tag=0):
             itrs = comm.recv(source=n, tag=0)
             terminated = True
-        #     if terminate.value < itr:
-        #         terminate.value = itr + 1
-        #     itrs = terminate.value
         if verbose and itr % 500 == 0:
             print(f'Node {i} iteration {itr}', flush=True)
 
         # Get data from upstream L queue
-        for k in comms_data['up_LQ']:
+        for k in comms_data['up_ZQ']:
             req = comm.Irecv(buffer, source=k, tag=itr)
             req.Wait()
             local_r -= Z[i,k]*buffer
@@ -193,12 +209,12 @@ def subproblem(i, data, resolvents, W, Z, comms_data, comm, gamma=0.5, itrs=100,
         w_value = resolvent.prox(local_v + local_r)
 
         # Terminate if needed
-        if not terminated and i==0 and vartol is not None:
+        if i==0 and vartol is not None and not terminated:
              #print(f'Node {i} w_value sending for eval: {w_value}', flush=True)
              comm.Send(w_value, dest=n, tag=itr)
 
         # Put data in downstream queues
-        for k in comms_data['down_LQ']:
+        for k in comms_data['down_ZQ']:
             comm.Isend(w_value, dest=k, tag=itr)
         for k in comms_data['down_BQ']:
             comm.Isend(w_value, dest=k, tag=itr)
@@ -232,20 +248,27 @@ def subproblem(i, data, resolvents, W, Z, comms_data, comm, gamma=0.5, itrs=100,
 
     #print(f'Node {i} w_value: {w_value}', flush=True)
     # return w_value and log if it is in the resolvent
-    return w_value, resolvent.log
+    if hasattr(resolvent, 'log'):
+        log = resolvent.log
+    else:
+        log = None
+    return w_value, log
 
-def evaluate(s, comm, vartol=1e-7, itrs=100):
-    """Evaluate the convergence of the algorithm
-    s: the shape of the data
-    comm: the MPI communicator
-    itrs: the number of iterations to run
+def evaluate(n, shape, comm, vartol=1e-7, itrs=100):
+    """
+    Evaluate the convergence of the algorithm and terminate if needed
+
+    Args:
+        s (tuple): the shape of the data
+        comm (MPI communicator): the MPI communicator
+        itrs (int): the number of iterations to run
     
     """
-    last = np.zeros(s, dtype=np.float64)
-    buffer = np.zeros(s, dtype=np.float64)
+    last = np.zeros(shape, dtype=np.float64)
+    buffer = np.zeros(shape, dtype=np.float64)
     counter = 0
     itr = 0
-    while counter < comm.Get_size() - 1 and counter < itrs and itr < itrs:
+    while counter < n and itr < itrs:
         comm.Recv(buffer, source=0, tag=itr)
         w = buffer.copy()
         # Print last and buffer
@@ -261,8 +284,11 @@ def evaluate(s, comm, vartol=1e-7, itrs=100):
     print(f'Reached termination criteria on Iteration {itr}', flush=True)
 
     # Terminate the other processes
-    terminate_itr = itr + 50 # comm.Get_size()
-    if itr < itrs - 50:
-        for i in range(comm.Get_size()-1):
+    advance = 50
+    terminate_itr = itr + advance
+    if itr < itrs - advance:
+        # t_itr = np.array(terminate_itr, 'i')
+        # comm.Bcast([t_itr, MPI.INT], root=n)
+        for i in range(n):
             #print(f'Sending termination criteria {terminate_itr} to {i}', flush=True)
             comm.send(terminate_itr, dest=i, tag=0)

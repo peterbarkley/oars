@@ -5,6 +5,14 @@ Algorithms
    :depth: 1
    :local:
 
+Solver
+------
+.. autofunction:: oars.oars.solve
+
+MT Solve
+--------
+.. autofunction:: oars.oars.solveMT
+   
 Serial Algorithm
 ----------------
 .. autofunction:: oars.algorithms.serial.serialAlgorithm

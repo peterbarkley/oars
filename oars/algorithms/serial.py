@@ -25,6 +25,23 @@ def serialAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdu
     Returns:
         x (ndarray): the solution
         results (list): list of dictionaries with the results for each resolvent
+
+    Examples:
+        >>> from oars.utils.proxs import quadprox
+        >>> from oars.algorithms import serialAlgorithm
+        >>> from oars.matrices import getFull
+        >>> import numpy as np
+        >>> vals = np.array([0, 1, 3, 40])
+        >>> n = len(vals)
+        >>> proxs = [quadprox]*n
+        >>> Z, W = getFull(n)
+        >>> x, results = serialAlgorithm(n, vals, proxs, W, Z, itrs=1000, vartol=1e-6, gamma=1.0)
+        Converged in objective value, iteration 13
+        >>> x
+        10.999999999990674
+        >>> results
+        [{'x': 10.999999999906539, 'v': 22.00000000003744}, {'x': 11.000000000103075, 'v': 13.66666666663539}, {'x': 10.999999999962412, 'v': 4.333333333327117}, {'x': 10.999999999990674, 'v': -40.0}]
+
     """
     # Initialize the resolvents and variables
     all_x = []
@@ -81,7 +98,7 @@ def serialAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdu
             xresults.append(all_x.copy())
             vresults.append(all_v.copy())
         if convergence.check(all_x, verbose=verbose):
-            print('Converged in objective value, iteration', itr+1)
+            print('Converged in value, iteration', itr+1)
             break
         
     if verbose:
