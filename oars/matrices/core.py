@@ -32,6 +32,25 @@ def getCore(n, fixed_Z={}, fixed_W={}, c=None, eps=0.0, gamma=1.0, adj=False, **
         Z (ndarray): n x n cvxpy decision variable matrix for Z
         W (ndarray): n x n cvxpy decision variable matrix for W
         cons (list): list of cvxpy constraints
+
+    Examples:
+        >>> import cvxpy as cvx
+        >>> from oars.matrices import getCore
+        >>> Z, W, cons = getCore(4, fixed_W={(3, 0): 0})
+        >>> obj = cvx.Minimize(cvx.norm(Z-W, 'fro'))
+        >>> prob = cvx.Problem(obj, cons)
+        >>> prob.solve()
+        >>> print(Z.value)
+        [[ 2. -1. -1. -0.]
+        [-1.  2. -0. -1.]
+        [-1. -0.  2. -1.]
+        [-0. -1. -1.  2.]]
+        >>> print(W.value)
+        [[ 2. -1. -1. -0.]
+        [-1.  2. -0. -1.]
+        [-1. -0.  2. -1.]
+        [-0. -1. -1.  2.]]
+
     '''
     if c is None:
         c = 2*(1-np.cos(np.pi/n))

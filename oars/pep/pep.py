@@ -313,12 +313,7 @@ def getContractionFactor(Z, W, ls=None, mus=None, operators=None, alpha=1, gamma
     """
     n = Z.shape[0]
     Ko, K1, Ki, Kp = getConstraintMatrices(Z, W, ls=ls, mus=mus, operators=operators, alpha=alpha, gamma=gamma)
-    # print(Ko)
-    # print(Ki)
-    # print(K1)
-    # for i in range(n):
-    #     print(Kp[2*i])
-    #     print(Kp[2*i+1])
+
     G = cvx.Variable((2*n, 2*n), PSD=True)
 
     constraints = [cvx.trace(Kpi @ G) >= 0 for Kpi in Kp]

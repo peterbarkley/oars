@@ -82,3 +82,54 @@ def getRyu(n):
         Z[i,i] = 2
     return Z, W
 
+def getTwoBlockSimilar(n):
+    '''
+    Get two block similar matrices for Z and W
+    Each has twos on the diagonal and -4/n in the off-diagonal n//2 x n//2 blocks
+
+    Args:
+        n (int): number of resolvents
+
+    Returns:
+        Z (ndarray): Z matrix n x n numpy array
+        W (ndarray): W matrix n x n numpy array
+    '''
+    if n % 2 != 0:
+        raise ValueError("n must be even")
+
+    m = n//2
+    W = eye(n)*2
+    v = -4/n
+    W[m:,:m] = v
+    W[:m,m:] = v
+
+    Z = W.copy()   
+    
+    return Z, W
+
+def getTwoBlockSLEM(n):
+    '''
+    Get two block matrices for Z and W
+    Z has twos on the diagonal and 4/(n-1) in the off-diagonal n//2 x n//2 blocks
+    W is :math:`2I - \\frac{2}{n}\\mathbf{1}\\mathbf{1}^T`
+
+
+    Args:
+        n (int): number of resolvents
+
+    Returns:
+        Z (ndarray): Z matrix n x n numpy array
+        W (ndarray): W matrix n x n numpy array
+    '''
+    if n % 2 != 0:
+        raise ValueError("n must be even")
+
+    m = n//2
+    Z = eye(n)*2
+    v = -4/n
+    Z[m:,:m] = v
+    Z[:m,m:] = v
+
+    W = eye(n)*2 - ones((n,n))*(2/n)
+    
+    return Z, W
