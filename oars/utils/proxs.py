@@ -1,4 +1,5 @@
 import numpy as np
+from time import time
 
 class traceEqualityIndicator():
     """
@@ -13,6 +14,7 @@ class traceEqualityIndicator():
         self.v = data['v'] # The value to match
         self.U = self.scale(self.A)
         self.shape = self.A.shape
+        self.log = []
 
     def scale(self, A):
         """
@@ -24,11 +26,20 @@ class traceEqualityIndicator():
         """
         Compute the proximal operator of the trace norm
         """
+        
+        log = {}
+        log['start'] = time()
         ax = np.trace(self.A @ X)
         if ax == self.v:
+            log['end'] = time()
+            log['time'] = log['end'] - log['start']
+            self.log.append(log)
             return X
-
-        return X - (ax - self.v)*self.U
+        Y = X - (ax - self.v)*self.U
+        log['end'] = time()
+        log['time'] = log['end'] - log['start']
+        self.log.append(log)
+        return Y
 
 class traceHalfspaceIndicator():
     """
@@ -39,6 +50,7 @@ class traceHalfspaceIndicator():
         self.A = A
         self.U = self.scale(A)
         self.shape = A.shape
+        self.log = []
 
     def scale(self, A):
         """
@@ -50,12 +62,47 @@ class traceHalfspaceIndicator():
         """
         Compute the proximal operator of the trace norm
         """
+        log = {}
+        log['start'] = time()
         ax = np.trace(self.A @ X)
+        log['end'] = time()
+        log['time'] = log['end'] - log['start']
+        self.log.append(log)
         if ax >= 0:
             return X
         
         return X - ax*self.U
 
+class psdConeAlt():
+    """
+    Class for the PSD cone proximal operator
+    """
+
+    def __init__(self, dim):
+        self.shape = dim
+        self.log = []
+        self.eye = np.eye(dim)
+        from scipy.linalg.lapack import dsyevr
+
+
+    def prox(self, X, t=1):
+        """
+        Compute the proximal operator of the PSD cone
+        """
+        log = {}
+        log['start'] = time()
+        smallest_eig = dsyevr(X, il=1, iu=1)
+        if smallest_eig >= 0:
+            log['end'] = time()
+            log['time'] = log['end'] - log['start']
+            self.log.append(log)
+            return X
+        Y = X - smallest_eig*self.eye
+        log['end'] = time()
+        log['time'] = log['end'] - log['start']
+        self.log.append(log)
+        return Y
+    
 class psdCone():
     """
     Class for the PSD cone proximal operator
@@ -63,18 +110,27 @@ class psdCone():
 
     def __init__(self, dim):
         self.shape = dim
+        self.log = []
 
     def prox(self, X, t=1):
         """
         Compute the proximal operator of the PSD cone
         """
+        log = {}
+        log['start'] = time()
         try:
             eig, vec = np.linalg.eigh(X)
             eig[eig < 0] = 0
         except:
             print('Error in eigh')
             print(X)
-        return vec @ np.diag(eig) @ vec.T
+
+        Y = vec @ np.diag(eig) @ vec.T
+        
+        log['end'] = time()
+        log['time'] = log['end'] - log['start']
+        self.log.append(log)
+        return Y
 
 class linearSubdiff():
     """
@@ -84,12 +140,20 @@ class linearSubdiff():
     def __init__(self, A):
         self.A = A
         self.shape = A.shape
+        self.log = []
 
     def prox(self, X, t=1):
         """
         Compute the proximal operator of the linear subdifferential
         """
-        return X - t*self.A
+        log = {}
+        log['start'] = time()
+        Y = X - t*self.A
+        log['end'] = time()
+        log['time'] = log['end'] - log['start']
+        self.log.append(log)
+
+        return Y
 
 class absprox():
     '''L1 Norm Resolvent function'''

@@ -17,7 +17,7 @@ if n > mpi_size - 1:
 
 title = "Quad_Test"
 gamma = 0.8
-itrs = 1000
+itrs = 10000
 vartol = 1e-5
 shape = ()
 Z, W = getBlockMin(n, n//2, objective=getMinResist)

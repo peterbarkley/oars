@@ -7,5 +7,5 @@ import mosek
 
 Z, W = getMT(30)
 t = time()
-print(getContractionFactor(Z, W, verbose=True, solver=cvx.MOSEK))
+print(getContractionFactor(Z, W, verbose=False, solver=cvx.MOSEK))
 print(time() - t)

@@ -175,6 +175,7 @@ def subproblem(i, data, problem_builder, v0, W, L, comms_data, queue, gamma=0.5,
 
     # Iterate over the problem
     itr = 0
+    itr_period = itrs//10
     while itr < itrs:
         if terminate is not None and terminate.value != 0:
             if verbose:
@@ -183,7 +184,7 @@ def subproblem(i, data, problem_builder, v0, W, L, comms_data, queue, gamma=0.5,
                 break
                 #terminate.value = itr + 1
             itrs = terminate.value
-        if verbose and itr % 1000 == 999:
+        if itr % itr_period == 0:
             print(f'Node {i} iteration {itr}')
 
         # Get data from upstream L queue
@@ -197,15 +198,8 @@ def subproblem(i, data, problem_builder, v0, W, L, comms_data, queue, gamma=0.5,
             v_temp += W[i,k]*temp
 
         # Solve the problem
-        w_temp = resolvent.prox(local_v + local_r, alpha)
-        # if verbose:
-        #     delta = np.linalg.norm(w_temp - w_value, 'fro')
-        #     print("Node", i, "Itr", itr, "Var Difference", delta)
-        w_value = w_temp
+        w_value = resolvent.prox(local_v + local_r, alpha)
 
-        # Terminate if needed
-        if terminate is not None:
-            queue['terminate'][i].put(w_value)
             
 
         # Put data in downstream queues
@@ -221,33 +215,26 @@ def subproblem(i, data, problem_builder, v0, W, L, comms_data, queue, gamma=0.5,
             queue[i,k].put(w_value)
 
         # Update v from all W queues
-        for k in comms_data['WQ']:
-            #temp = queue[k,i].get()            
+        for k in comms_data['WQ']:         
             v_temp += W[i,k]*queue[k,i].get() 
             
         # Update v from all B queues
         for k in comms_data['down_BQ']:
             v_temp += W[i,k]*queue[k,i].get()
-        #v_temp += sum([W[i,k]*queue[k,i].get() for k in comms_data['down_BQ']])
         
         v_update = gamma*(W[i,i]*w_value+v_temp)
-        # if verbose:
-        #     delta = np.linalg.norm(v_update, 'fro')
-        #     print("Node", i, "Itr", itr, "Consensus Difference", delta)
+
         local_v = local_v - v_update
         
+        # Terminate if needed
+        if terminate is not None:
+            queue['terminate'][i].put(v_update)
+
         # Zero out v_temp without reallocating memory
         v_temp.fill(0)
         local_r.fill(0)
         itr += 1
-        # Log the value -- needs to be done in another process
-        # if i == 0:
-        #     prob_val = fullValue(data, w_value)
-        #     log_val.append(prob_val)
 
-    # Return the solution
-    # if i == 0:
-    #     return {'w':w_value, 'v':local_v, 'log':log_val}
     if hasattr(resolvent, 'log'):
         return {'x':w_value, 'v':local_v, 'log':resolvent.log}
     return {'x':w_value, 'v':local_v}
@@ -267,24 +254,24 @@ def evaluate(n, terminateQueue, terminate, vartol, itrs, checkperiod=1, verbose=
         verbose (bool): True for verbose output
         
     """
-    w = []
+    v = []
     for i in range(n):
-        w.append(terminateQueue[i].get())
+        v.append(terminateQueue[i].get())
     #n = len(x) # x is just from node 0
     varcounter = 0
     itr = 0
-    itrs -= 10
+    itrs -= n
     while itr < itrs:
         if verbose:print('iteration', itr+1)
-        prev_w = w.copy()
+        prev_v = v.copy()
         for i in range(n):
-            w[i] = terminateQueue[i].get()
-        delta = sum(np.linalg.norm(w[i]-prev_w[i]) for i in range(n))
+            v[i] = terminateQueue[i].get()
+        delta = sum(np.linalg.norm(v[i], 'fro') for i in range(n))
         if verbose:print("vartol check delta", delta)
         if delta < vartol:
             varcounter += 1
-            if varcounter >= 10:
-                terminate.value = itr + 10
+            if varcounter >= n:
+                terminate.value = itr + 2*n
                 if verbose:
                     print('Converged on vartol on iteration', itr)
                 break

@@ -1,31 +1,32 @@
 from mpi4py import MPI
-from oars.matrices import getBlockMin, getMinResist
+from oars.matrices import getTwoBlockSimilar
 import json
 import numpy as np
+from time import time
 
 comm = MPI.COMM_WORLD
 i = comm.Get_rank()
 mpi_size = comm.Get_size()
 tgt_n = 30
 n = 4 + 2*tgt_n
-
-if n > mpi_size - 1:
+check_vartol = 0
+log_file = 'logs1/distributed_logs_'+str(i)+'.json'
+if n > (mpi_size - check_vartol):
     print("Problem size is larger than the number of processors")
     exit()
     
 
-title = "Quad_Test"
+title = "SDP_Test"
 gamma = 0.8
-itrs = 7000
+itrs = 1000
 vartol = None #1e-5
 shape = (2*tgt_n, 2*tgt_n)
-Z, W = getBlockMin(n, n//2, objective=getMinResist)
+Z, W = getTwoBlockSimilar(n)
 
 # Initialize the resolvents and variables
 if i == 0:
     print("Testing SDP")
-    from time import time
-    from proxs import psdCone, traceEqualityIndicator, traceHalfspaceIndicator, linearSubdiff
+    from oars.utils.proxs import psdCone, traceEqualityIndicator, traceHalfspaceIndicator, linearSubdiff
     from oars.matrices import getFull, getBlockMin, getMT
     from oars.pep import getConstraintMatrices    
     from oars.algorithms.distributed import subproblem, initialize
@@ -56,12 +57,12 @@ if i == 0:
 
     print(np.trace(Ko @ xbar), flush=True)
     # Save xbar to file
-    np.save('distributed_results_'+title+'.npy', xbar)
+    np.save('logs/distributed_results_'+title+'.npy', xbar)
 
     # Save log to file
     if log is not None:
         timestamp = time()
-        with open('distributed_logs'+str(i)+'_'+title+'.json', 'w') as f:
+        with open(log_file, 'w') as f:
             json.dump(log, f)
 
 elif i < n:
@@ -77,7 +78,7 @@ elif i < n:
 
     if log is not None:
         timestamp = time()
-        with open('distributed_logs'+str(i)+'_'+title+'.json', 'w') as f:
+        with open(log_file, 'w') as f:
             json.dump(log, f)
     
     comm.Send(x, dest=0, tag=0)
