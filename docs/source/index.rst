@@ -14,6 +14,7 @@ Welcome to OARS's documentation!
    quickstart
    api
    examples
+   examples/notebook
    whatsnew
    
 

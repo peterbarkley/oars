@@ -53,6 +53,7 @@ def getLipschitzMatrix(lipschitz, i, Z, alpha=1):
         lipschitz (float): Lipschitz constant
         i (int): index of the operator
         Z (ndarray): Z matrix
+        alpha (float): proximal scaling parameter. Default is 1.
 
     Returns:
         ndarray: Lipschitz matrix for the operator
@@ -80,6 +81,7 @@ def getRedLipschitzMatrix(lipschitz, i, Z, M, alpha=1):
         i (int): index of the operator
         Z (ndarray): Z matrix
         M (ndarray): M matrix
+        alpha (float): proximal scaling parameter. Default is 1.
 
     Returns:
         ndarray: Lipschitz matrix for the operator
@@ -107,6 +109,7 @@ def getMonotoneMatrix(mu, i, Z, alpha=1):
         mu (float): strong convexity parameter
         i (int): index of the operator
         Z (ndarray): Z matrix
+        alpha (float): proximal scaling parameter. Default is 1.
 
     Returns:
         ndarray: Monotone matrix for the operator
@@ -254,8 +257,9 @@ def getReducedContractionFactor(Z, M, ls=None, mus=None, operators=None, alpha=1
         ls (list): size n numpy array of Lipschitz constants
         mus (list): size n numpy array of strong convexity parameters where mu[i] < l[i]
         operators (list): list of proximal operators
-        gamma (float): step size
-        verbose (bool): verbose output
+        alpha (float): proximal scaling parameter. Default is 1.
+        gamma (float): step size. Default is 0.5.
+        verbose (bool): verbose output. Default is False.
 
     Returns:
         tau (float): contraction factor

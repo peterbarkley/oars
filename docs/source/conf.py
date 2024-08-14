@@ -28,6 +28,7 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
     'sphinx.ext.autosummary',
+    # 'nbsphinx',
     # 'sphinxcontrib_autodocgen',
     'myst_parser',
 ]

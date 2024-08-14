@@ -29,7 +29,8 @@ REQUIRED = [
 EXTRAS = {
     'pepit': ['PEPit'],
     'analyis': ['plotly', 'pandas'],
-    'distributed': ['mpi4py']
+    'distributed': ['mpi4py'],
+    'all': ['PEPit', 'plotly', 'pandas', 'mpi4py']
 }
 
 # The rest you shouldn't have to touch too much :)

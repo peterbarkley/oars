@@ -126,6 +126,8 @@ def getSimilar(n, **kwargs):
         n (int): number of resolvents
         kwargs: keyword arguments
 
+            - fixed_Z (dict): dictionary of fixed Z values with keys as (i,j) tuples
+            - fixed_W (dict): dictionary of fixed W values with keys as (i,j) tuples
             - c (float): connectivity parameter
             - eps (float): allowable deviation from 2 in Z diagonal
             - gamma (float): scaling parameter for Z
@@ -135,7 +137,23 @@ def getSimilar(n, **kwargs):
         Z (ndarray): n x n consensus matrix
         W (ndarray): n x n resolvent matrix
         alpha (float): scaling factor for resolvent if eps is nonzero
+
+    Examples:
+        >>> from oars.matrices import getSimilar
+        >>> Z, W = getSimilar(4, fixed_W={(3, 0): 0}, fixed_Z={(1, 0): 0})
+        >>> print(Z)
+        [[ 2.    -0.    -1.645 -0.355]
+        [-0.     2.    -0.355 -1.645]
+        [-1.645 -0.355  2.    -0.   ]
+        [-0.355 -1.645 -0.     2.   ]]
+        >>> print(W)
+        [[ 1.645 -0.17  -1.475 -0.   ]
+        [-0.17   1.918 -0.273 -1.475]
+        [-1.475 -0.273  1.918 -0.17 ]
+        [-0.    -1.475 -0.17   1.645]]
+
     '''
+
     # Set default values
     verbose = False
     if 'verbose' in kwargs:
@@ -179,6 +197,20 @@ def getMaxConnectivity(n, vz=1.0, vw=1.0, **kwargs):
         Z (ndarray): n x n resolvent matrix
         W (ndarray): n x n consensus matrix
         alpha (float): scaling factor for resolvent if eps is nonzero
+
+    Examples:
+        >>> from oars.matrices import getMaxConnectivity
+        >>> Z, W = getMaxConnectivity(4, fixed_W={(3, 0): 0}, fixed_Z={(1, 0): 0})
+        >>> print(Z)
+        [[ 2.  0. -1. -1.]
+        [ 0.  2. -1. -1.]
+        [-1. -1.  2.  0.]
+        [-1. -1.  0.  2.]]
+        >>> print(W)
+        [[ 1.    -0.5   -0.5   -0.   ]
+        [-0.5    1.459 -0.459 -0.5  ]
+        [-0.5   -0.459  1.459 -0.5  ]
+        [-0.    -0.5   -0.5    1.   ]]
     '''
 
     # Set default values
@@ -217,12 +249,12 @@ def getMinSLEM(n, vz=1.0, vw=1.0, **kwargs):
 
     Args:
         n (int): number of resolvents
-        fixed_Z (dict): dictionary of fixed Z values with keys as (i,j) tuples
-        fixed_W (dict): dictionary of fixed W values with keys as (i,j) tuples
         vz (float): weight for Z SLEM value
         vw (float): weight for W SLEM value
         **kwargs: keyword arguments for verbosity and cvxpy solver
 
+            - fixed_Z (dict): dictionary of fixed Z values with keys as (i,j) tuples
+            - fixed_W (dict): dictionary of fixed W values with keys as (i,j) tuples
             - c (float): connectivity parameter
             - eps (float): allowable deviation from 2 in Z diagonal
             - gamma (float): scaling parameter for Z
@@ -231,6 +263,20 @@ def getMinSLEM(n, vz=1.0, vw=1.0, **kwargs):
         Z (ndarray): n x n resolvent matrix
         W (ndarray): n x n consensus matrix
         alpha (float): scaling factor for resolvent if eps is nonzero
+
+    Examples:
+        >>> from oars.matrices import getMinSLEM
+        >>> Z, W = getMinSLEM(4, fixed_W={(3, 0): 0}, fixed_Z={(1, 0): 0})
+        >>> print(Z)
+        [[ 2.    -0.    -1.333 -0.667]
+        [-0.     2.    -0.667 -1.333]
+        [-1.333 -0.667  2.    -0.   ]
+        [-0.667 -1.333 -0.     2.   ]]
+        >>> print(W)
+        [[ 1.333 -0.667 -0.667  0.   ]
+        [-0.667  1.333 -0.    -0.667]
+        [-0.667 -0.     1.333 -0.667]
+        [ 0.    -0.667 -0.667  1.333]]
     """
 
     verbose = False
@@ -291,6 +337,20 @@ def getMinResist(n, vz=1.0, vw=1.0, **kwargs):
         Z (ndarray): n x n resolvent matrix
         W (ndarray): n x n consensus matrix
         alpha: scaling factor for resolvent if eps is nonzero
+
+    Examples:
+        >>> from oars.matrices import getMinResist
+        >>> Z, W = getMinResist(4, fixed_W={(3, 0): 0}, fixed_Z={(1, 0): 0}, gamma=1.5)
+        >>> print(Z)
+        [[ 2.     0.    -1.174 -0.826]
+        [ 0.     2.    -0.826 -1.174]
+        [-1.174 -0.826  2.     0.   ]
+        [-0.826 -1.174  0.     2.   ]]
+        >>> print(W)
+        [[ 1.76  -0.704 -1.056  0.   ]
+        [-0.704  2.6   -0.84  -1.056]
+        [-1.056 -0.84   2.6   -0.704]
+        [ 0.    -1.056 -0.704  1.76 ]]
     """
 
     verbose = False
@@ -333,6 +393,13 @@ def getBlockFixed(n, m):
         Z_fixed (dict): dictionary of fixed Z values with keys as (i,j) tuples
         W_fixed (dict): dictionary of fixed W values with keys as (i,j) tuples
         
+    Examples:
+        >>> from oars.matrices import getBlockFixed
+        >>> Z_fixed, W_fixed = getBlockFixed(4, 2)
+        >>> print(Z_fixed)
+        {(1, 0): 0, (3, 2): 0}
+        >>> print(W_fixed)
+        {}
     '''
     if isinstance(m, int):
         Z_fixed = {(i,j): 0 for i in range(n) for j in range(n) if j<i and (i//m == j//m)}
@@ -379,6 +446,23 @@ def getBlockMin(n, m, objective=getSimilar, **kwargs):
         W (ndarray): (n,n) consensus matrix
         alpha (float): scaling factor for resolvent if eps is nonzero
     
+    Examples:
+        >>> from oars.matrices import getBlockMin
+        >>> Z, W = getBlockMin(6, 2, objective=getMinResist)
+        >>> print(Z)
+        [[ 2.   0.  -0.5 -0.5 -0.5 -0.5]
+        [ 0.   2.  -0.5 -0.5 -0.5 -0.5]
+        [-0.5 -0.5  2.   0.  -0.5 -0.5]
+        [-0.5 -0.5  0.   2.  -0.5 -0.5]
+        [-0.5 -0.5 -0.5 -0.5  2.   0. ]
+        [-0.5 -0.5 -0.5 -0.5  0.   2. ]]
+        >>> print(W)
+        [[ 1.5 -0.5 -0.5 -0.5  0.   0. ]
+        [-0.5  1.5 -0.5 -0.5  0.   0. ]
+        [-0.5 -0.5  2.   0.  -0.5 -0.5]
+        [-0.5 -0.5  0.   2.  -0.5 -0.5]
+        [ 0.   0.  -0.5 -0.5  1.5 -0.5]
+        [ 0.   0.  -0.5 -0.5 -0.5  1.5]]
     '''
     Z_fixed, W_fixed = getBlockFixed(n, m)
 
@@ -394,6 +478,15 @@ def getMfromWCholesky(W):
 
     Returns:
         M (ndarray): (n-1) x n array such that M.T @ M = W
+
+    Examples:
+        >>> from oars.matrices import getMfromWCholesky, getTwoBlockSimilar
+        >>> Z, W = getTwoBlockSimilar(4)
+        >>> M = getMfromWCholesky(W)
+        >>> print(M)
+        [[-1.     1.     0.     0.   ]
+        [-0.707 -0.707  1.414  0.   ]
+        [-0.707 -0.707  0.     1.414]]
     '''
 
     lu, d, perm = ldl(W, lower=0)
@@ -418,6 +511,15 @@ def getMfromWEigen(W):
 
     Returns:
         M (ndarray): (n-1) x n array such that M.T @ M = W
+
+    Examples:
+        >>> from oars.matrices import getMfromWEigen, getTwoBlockSimilar
+        >>> Z, W = getTwoBlockSimilar(4)
+        >>> M = getMfromWEigen(W)
+        >>> print(M)
+        [[-1.  1. -0. -0.]
+        [ 0.  0. -1.  1.]
+        [-1. -1.  1.  1.]]
     '''
     vals, vecs = np.linalg.eigh(W)
     assert(np.all(vals >= -1e-6)) #W is psd so these eigvals shouldn't be too negative
@@ -437,6 +539,17 @@ def getIncidence(W):
     Returns:
         M (ndarray): m x n numpy array of incidence matrix
                      where m is the number of edges
+
+    Examples:
+        >>> from oars.matrices import getIncidence, getTwoBlockSimilar
+        >>> Z, W = getTwoBlockSimilar(4)
+        >>> M = getIncidence(W)
+        >>> print(M)
+        [[-1.  0.  1.  0.]
+        [ 0. -1.  1.  0.]
+        [-1.  0.  0.  1.]
+        [ 0. -1.  0.  1.]]
+
     '''
     n = W.shape[0]
     P = -np.tril(W, k=-1)

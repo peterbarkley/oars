@@ -292,3 +292,4 @@ def evaluate(n, shape, comm, vartol=1e-7, itrs=100):
         for i in range(n):
             #print(f'Sending termination criteria {terminate_itr} to {i}', flush=True)
             comm.send(terminate_itr, dest=i, tag=0)
+
