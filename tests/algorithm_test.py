@@ -1,7 +1,7 @@
 import numpy as np
 from oars import solveMT, solve
 from time import time
-from proxs import *
+from oars.utils.proxs import *
 
 def testQuad(parallel=False, verbose=False):
     """
