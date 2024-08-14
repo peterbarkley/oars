@@ -23,7 +23,7 @@ def getCycleTime(t, l, Z, W, itrs=None):
                      X[i,j] is 1 if Z[i,j] is nonzero, i>j
                      X[j,i] is 1 if W[i,j] is nonzero, i<j
     
-    Example:
+    Examples:
         >>> from oars.matrices import getMT
         >>> t = [1, 2, 3]
         >>> l = np.array([[0, 1, 2], [1, 0, 1], [2, 1, 0]])
@@ -33,17 +33,17 @@ def getCycleTime(t, l, Z, W, itrs=None):
         6.999999999996042
         >>> s
         array([[ 0.,  2.,  5.],
-       [ 5.,  9., 12.],
-       [12., 16., 19.],
-       [19., 23., 26.],
-       [26., 30., 33.],
-       [33., 37., 40.],
-       [40., 44., 47.],
-       [47., 51., 54.]])
-       >>> X
-       array([[0., 1., 0.],
-       [1., 0., 1.],
-       [1., 1., 0.]])
+            [ 5.,  9., 12.],
+            [12., 16., 19.],
+            [19., 23., 26.],
+            [26., 30., 33.],
+            [33., 37., 40.],
+            [40., 44., 47.],
+            [47., 51., 54.]])
+        >>> X
+        array([[0., 1., 0.],
+            [1., 0., 1.],
+            [1., 1., 0.]])
     '''
 
     # Build communication matrix  
@@ -92,7 +92,7 @@ def getGantt(t, l, Z, W, title="Example", itrs=None):
     Returns:
         fig (plotly figure): Gantt chart of the parallel algorithm
 
-    Example:
+    Examples:
         >>> from oars.utils import getGantt
         >>> from oars.matrices import getMT
         >>> import numpy as np
@@ -151,6 +151,10 @@ def getMetrics(Z, W, t=None, l=None, ls=None, mus=None, contraction_target=0.5):
         total_time (float): total time to target
 
     Example:
+        >>> from oars.matrices import getMT
+        >>> Z, W = getMT(3)
+        >>> getMetrics(Z, W)
+        (3.999, 0.854, 5.0, 19.999)
     '''
     n = Z.shape[0]
     if t is None: t = np.ones(n)

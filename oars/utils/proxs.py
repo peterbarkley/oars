@@ -72,36 +72,6 @@ class traceHalfspaceIndicator():
             return X
         
         return X - ax*self.U
-
-class psdConeAlt():
-    """
-    Class for the PSD cone proximal operator
-    """
-
-    def __init__(self, dim):
-        self.shape = dim
-        self.log = []
-        self.eye = np.eye(dim)
-        from scipy.linalg.lapack import dsyevr
-
-
-    def prox(self, X, t=1):
-        """
-        Compute the proximal operator of the PSD cone
-        """
-        log = {}
-        log['start'] = time()
-        smallest_eig = dsyevr(X, il=1, iu=1)
-        if smallest_eig >= 0:
-            log['end'] = time()
-            log['time'] = log['end'] - log['start']
-            self.log.append(log)
-            return X
-        Y = X - smallest_eig*self.eye
-        log['end'] = time()
-        log['time'] = log['end'] - log['start']
-        self.log.append(log)
-        return Y
     
 class psdCone():
     """
