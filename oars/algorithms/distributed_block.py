@@ -2,6 +2,7 @@
 import sys
 from mpi4py import MPI
 import numpy as np
+from time import time
 
 def distributed_block_solve(n, data, resolvents, warmstartprimal, warmstartdual=None, w_own=0, w_other=None, itrs=1001, gamma=0.9, alpha=1.0, vartol=None, verbose=False):
 
@@ -41,7 +42,7 @@ def distributed_block_solve(n, data, resolvents, warmstartprimal, warmstartdual=
     #     result = icomm.recv(source=i)
     #     results.append(result)
 
-    if verbose:print('x_bar', x_bar)
+    # if verbose:print('x_bar', x_bar)
     icomm.Disconnect()
     return x_bar, results
 
@@ -77,6 +78,7 @@ def worker(icomm):
     delta = np.array(0.0)
     itr_period = itrs // 10
     check_period = 1
+    t = time()
     for itr in range(itrs):
 
         # First block
@@ -94,21 +96,23 @@ def worker(icomm):
         v[1] = v[1] - update_1
 
         if itr % check_period == 0:
-            v_sq = np.linalg.norm(update_0) + np.linalg.norm(update_1)
+            v_sq = np.linalg.norm(update_0)**2 + np.linalg.norm(update_1)**2
             comm.Allreduce([v_sq, MPI.DOUBLE], [delta, MPI.DOUBLE], op=MPI.SUM)
-            change = max(np.abs(delta - old_delta), vartol, 1e-8)
+            delta_rt = np.sqrt(delta)
+            change = max(np.abs(delta_rt - old_delta), vartol, 1e-8)
             # print('Worker', myrank, 'Iteration', itr, 'Delta', delta, 'Change', change, 'Vartol', vartol, 'Check period', check_period, 'old_delta', old_delta, 'v_sq', v_sq)
-            check_period = max(1, min(itr_period, int(delta/change)))
-            if delta < vartol:
+            check_period = max(1, min(itr_period, int(delta_rt/change)))
+            if delta_rt < vartol:
                 if myrank == 0:
-                    print('Converged at iteration', itr, 'Delta', delta)
+                    print('Converged at iteration', itr, 'Delta', delta_rt)
                 break
-            old_delta = delta.copy()
+            old_delta = delta_rt.copy()
         
         if myrank == 0 and itr % itr_period == 0:
-            print('Iteration', itr, 'Delta', delta, flush=True)
+            print('Iteration', itr, 'Delta', old_delta, flush=True)
 
-
+    if myrank == 0:
+        print('Worker', myrank, 'finished, time', time()-t, flush=True)
     log = [{'first_x': my_x, 'second_x': my_y, 'first_v0': v[0], 'second_v0': v[1]}]
     if hasattr(res[0], 'log'):
         log += res[0].log
@@ -116,11 +120,11 @@ def worker(icomm):
 
     logs = comm.gather(log, root=0)
     if myrank == 0:
-        print('Worker', myrank, 'finished')
         xbar = (sum_x + sum_y)/n
         icomm.send(xbar, dest=0)
         icomm.send(logs, dest=0)
 
+    # comm.Disconnect()
 
 if __name__ == '__main__':
     if 'child' in sys.argv:
