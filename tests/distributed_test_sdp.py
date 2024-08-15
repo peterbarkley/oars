@@ -7,7 +7,7 @@ from time import time
 comm = MPI.COMM_WORLD
 i = comm.Get_rank()
 mpi_size = comm.Get_size()
-tgt_n = 30
+tgt_n = 32
 n = 4 + 2*tgt_n
 check_vartol = 0
 log_file = 'logs1/distributed_logs_'+str(i)+'.json'
@@ -18,13 +18,14 @@ if n > (mpi_size - check_vartol):
 
 title = "SDP_Test"
 gamma = 0.8
-itrs = 1000
+itrs = 7000
 vartol = None #1e-5
 shape = (2*tgt_n, 2*tgt_n)
 Z, W = getTwoBlockSimilar(n)
 
 # Initialize the resolvents and variables
 if i == 0:
+    t = time()
     print("Testing SDP")
     from oars.utils.proxs import psdCone, traceEqualityIndicator, traceHalfspaceIndicator, linearSubdiff
     from oars.matrices import getFull, getBlockMin, getMT
@@ -42,11 +43,10 @@ if i == 0:
     
     print("Node 0 running subproblem", flush=True)
         #print("Comms data 0", Comms_Data[0], flush=True)
-    t = time()
     d = data[i]
     res = proxlist[i]
     x, log = subproblem(i, d, res, W, Z, comms_data, comm, gamma, itrs, vartol=vartol, verbose=True)
-    print("Time", time() - t)
+
     
     x_i = np.zeros(x.shape)
     for k in range(1, n):
@@ -56,6 +56,7 @@ if i == 0:
     print(xbar, flush=True)
 
     print(np.trace(Ko @ xbar), flush=True)
+    print("Time", time() - t)
     # Save xbar to file
     np.save('logs/distributed_results_'+title+'.npy', xbar)
 
