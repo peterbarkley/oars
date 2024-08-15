@@ -111,25 +111,27 @@ def worker(icomm):
     # print('Worker', myrank, 'received data:', z, w_own, w_other, gamma, alpha, first_data, first_resolvent, second_data, second_resolvent, v0)
     # log = []
     shape = v0.shape
-    my_x = np.zeros(shape, 'd')
-    my_y = np.zeros(shape, 'd')
-    sum_x = np.zeros(shape, 'd')
-    sum_y = np.zeros(shape, 'd')
-    allreduce_request_x = comm.Allreduce_init([my_x, MPI.DOUBLE], [sum_x, MPI.DOUBLE], op=MPI.SUM)
-    allreduce_request_y = comm.Allreduce_init([my_y, MPI.DOUBLE], [sum_y, MPI.DOUBLE], op=MPI.SUM)
+    # my_x = np.zeros(shape, 'd')
+    # my_y = np.zeros(shape, 'd')
+    sum_x = np.zeros(shape)
+    sum_y = np.zeros(shape)
+    # allreduce_request_x = comm.Allreduce_init([my_x, MPI.DOUBLE], [sum_x, MPI.DOUBLE], op=MPI.SUM)
+    # allreduce_request_y = comm.Allreduce_init([my_y, MPI.DOUBLE], [sum_y, MPI.DOUBLE], op=MPI.SUM)
     for itr in range(itrs):
 
         # First block
         my_x = res[0].prox(v[0], alpha)
         # sum_x = np.zeros(my_x.shape, 'd')
         # my_x = np.array(my_x, 'd')
-        # comm.Allreduce([my_x, MPI.DOUBLE], [sum_x, MPI.DOUBLE], op=MPI.SUM)
-        allreduce_request_x.Start()
+        comm.Allreduce([my_x, MPI.DOUBLE], [sum_x, MPI.DOUBLE], op=MPI.SUM)
+        # allreduce_request_x.Start()
+        # comm.Barrier()
         my_y = res[1].prox(v[1]+z*sum_x, alpha)
         # sum_y = np.zeros(my_y.shape, 'd')
         # my_y = np.array(my_y, 'd')
-        # comm.Allreduce([my_y, MPI.DOUBLE], [sum_y, MPI.DOUBLE], op=MPI.SUM)
-        allreduce_request_y.Start()
+        comm.Allreduce([my_y, MPI.DOUBLE], [sum_y, MPI.DOUBLE], op=MPI.SUM)
+        # allreduce_request_y.Start()
+        # comm.Barrier()
 
 
         # Update v

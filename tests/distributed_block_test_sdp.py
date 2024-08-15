@@ -3,10 +3,12 @@ from oars.algorithms import distributed_block_solve
 from oars.matrices import getFull
 from oars.pep import getConstraintMatrices
 from oars.utils.proxs import *
+from time import time
 np.set_printoptions(precision=3, suppress=True, linewidth=200)
 VERBOSE = False
 
 print("Testing SDP")
+t = time()
 tgt_n = 3
 Z, W = getFull(tgt_n)
 Ko, K1, Ki, Kp = getConstraintMatrices(Z, W, gamma=0.5)
@@ -24,6 +26,7 @@ x, results = distributed_block_solve(dim, data, proxlist, warmstartprimal=warmst
 # print(results)
 print(warmstart)
 print(np.trace(Ko @ x))
+print("Time taken", time()-t)
 from oars.pep import getContractionFactor
 print(getContractionFactor(Z, W))
 print(np.linalg.eigvalsh(x))
