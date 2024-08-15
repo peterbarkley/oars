@@ -9,7 +9,7 @@ VERBOSE = False
 
 print("Testing SDP")
 t = time()
-tgt_n = 3
+tgt_n = 32
 Z, W = getFull(tgt_n)
 Ko, K1, Ki, Kp = getConstraintMatrices(Z, W, gamma=0.5)
 

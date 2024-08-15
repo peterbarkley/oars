@@ -62,11 +62,12 @@ def distributed_block_solve(n, data, resolvents, warmstartprimal, warmstartdual=
         y = icomm.recv(source=i)
         result = icomm.recv(source=i)
         results.append(result)
-        print('Received x from worker', i, x)
-        print('Received y from worker', i, y)
+        if verbose:
+            print('Received x from worker', i, x)
+            print('Received y from worker', i, y)
         x_bar += x + y
     x_bar /= n
-    print('x_bar', x_bar)
+    if verbose:print('x_bar', x_bar)
     icomm.Disconnect()
     return x_bar, results
 
