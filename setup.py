@@ -22,7 +22,7 @@ VERSION = '0.1.0'
 
 # What packages are required for this module to be executed?
 REQUIRED = [
-    'numpy', 'cvxpy', 'scipy', 'pyomo'
+    'numpy<2.0', 'cvxpy', 'scipy', 'pyomo'
 ]
 
 # What packages are optional?
@@ -31,7 +31,7 @@ EXTRAS = {
     'analyis': ['plotly', 'pandas'],
     'distributed': ['mpi4py'],
     'all': ['PEPit', 'plotly', 'pandas', 'mpi4py'],
-    'paper': ['plotly', 'kaleido', 'pandas', 'matplotlib', 'seaborn']
+    'paper': ['plotly', 'kaleido', 'pandas', 'matplotlib', 'seaborn', 'jupyter', 'mosek', 'gurobipy']
 }
 
 # The rest you shouldn't have to touch too much :)
