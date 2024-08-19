@@ -87,6 +87,31 @@ def getCore(n, fixed_Z={}, fixed_W={}, c=None, eps=0.0, gamma=1.0, adj=False, **
 
     return Z, W, cons    
 
+def getIncidenceFixed(n, fixed):
+    '''
+    Converts fixed dictionary to incidence matrix
+
+    Args:
+        n (int): dimension of matrix
+        fixed (dict): dictionary with entries (r,c): 0 for edges to exclude
+
+    Returns:
+        M (ndarray): m x n numpy array of incidence matrix
+                     where m is the number of edges
+    '''
+    edges = 0
+    M = []
+    for i in range(n):
+        for j in range(i):
+            if (i,j) in fixed and (fixed[i,j] == 0 or fixed[j,i] == 0):
+                continue
+            else:
+                row = np.zeros(n)
+                row[i] = 1
+                row[j] = -1
+                M.append(row)
+    return np.array(M)
+
 def postprocess(prob, Z, W, eps=0.0, **kwargs):
     '''
     Postprocess the results of the optimization
