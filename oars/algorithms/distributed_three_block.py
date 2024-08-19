@@ -52,6 +52,18 @@ def main_child():
     worker(icomm)
     icomm.Disconnect()
 
+def xbar_diff(my_x, my_y, sum_x, sum_y, sum_z, n, comm):
+    xbar = (sum_x + sum_y + sum_z)/n
+    diff = np.linalg.norm(xbar - my_x, ord='fro')**2 + np.linalg.norm(xbar - my_y, ord='fro')**2
+    sum_diff = np.array(0.0)
+    comm.Allreduce([diff, MPI.DOUBLE], [sum_diff, MPI.DOUBLE], op=MPI.SUM)
+    return sum_diff**0.5
+
+def zero_diff(v, comm):
+    sum_v = np.zeros(v[0].shape)
+    v_total = sum(v)
+    comm.Allreduce([v_total, MPI.DOUBLE], [sum_v, MPI.DOUBLE], op=MPI.SUM)
+    return np.linalg.norm(sum_v, ord='fro')
 
 def worker(icomm):
     myrank = icomm.Get_rank()
@@ -111,8 +123,9 @@ def worker(icomm):
             comm_group_2.Allreduce([my_z, MPI.DOUBLE], [sum_z, MPI.DOUBLE], op=MPI.SUM)
 
         comm.Bcast(sum_x, root=0)
-        comm.Bcast(sum_z, root=n//2)
-
+        comm.Bcast(sum_z, root=n//4)
+        # if myrank == 0:
+        #     print('Iteration', itr, 'sum x', np.linalg.norm(sum_x), 'sum z', np.linalg.norm(sum_z),flush=True)
         # Second block
         update_1 = gamma*(2*my_y - w_other*old_sum_x - w_own*sum_y - w_other*sum_z)
         v[1] = v[1] - update_1
@@ -136,35 +149,41 @@ def worker(icomm):
             # print('Worker', myrank, 'Iteration', itr, 'Delta', delta, 'Change', change, 'Vartol', vartol, 'Check period', check_period, 'old_delta', old_delta, 'v_sq', v_sq)
             check_period = max(1, min(itr_period, int(delta_rt/change)))
             if myrank < n//4:
-                sum_diff = xbar_diff(my_x, my_y, sum_x, sum_y, sum_z, n)
+                sum_diff = xbar_diff(my_x, my_y, sum_x, sum_y, sum_z, n, comm)
                 u0 = old_v0 - old_my_x # v0 + (L-I) x
                 u1 = v[1] - my_y + z*sum_x # v1 + (L-I) x
-                zero_diff = zero_diff([u0, u1])
+                sum_zero_diff = zero_diff([u0, u1], comm)
             else:
-                sum_diff = xbar_diff(my_z, my_y, sum_z, sum_y, sum_x, n)
+                sum_diff = xbar_diff(my_z, my_y, sum_z, sum_y, sum_x, n, comm)
                 u0 = v[0] - my_z + z*sum_y # v0 + (L-I) x
                 u1 = v[1] - my_y + z*sum_x # v1 + (L-I) x
-                zero_diff = zero_diff([u0, u1])
+                sum_zero_diff = zero_diff([u0, u1], comm)
 
             if delta_rt < vartol:
                 if myrank == 0:
-                    print('Converged at iteration', itr, 'Delta v', delta_rt, 'Sum diff', sum_diff, 'Zero diff', zero_diff, flush=True)
+                    print('Converged at iteration', itr, 'Delta v', delta_rt, 'Sum diff', sum_diff, 'Zero diff', sum_zero_diff, flush=True)
                 break
             old_delta = delta_rt.copy()
         
         if myrank == 0 and itr % itr_period == 0:
-            print('Iteration', itr, 'Delta', old_delta, 'Sum Diff', sum_diff, 'Zero diff', zero_diff, flush=True)
+            timedelta = (time()-t)
+            print('Iteration', itr, 'Time', timedelta, 'Delta v', old_delta, 'Sum Diff', sum_diff, 'Zero diff', sum_zero_diff, flush=True)
 
     if myrank == 0:
         print('Worker', myrank, 'finished, time', time()-t, flush=True)
-    log = [{'first_x': my_x, 'second_x': my_y, 'first_v0': v[0], 'second_v0': v[1]}]
+
+    if myrank < n//4:
+        x = my_x
+    else:
+        x = my_z
+    log = [{'first_x': x, 'second_x': my_y, 'first_v0': v[0], 'second_v0': v[1]}]
     if hasattr(res[0], 'log'):
         log += res[0].log
         log += res[1].log
 
     logs = comm.gather(log, root=0)
     if myrank == 0:
-        xbar = (sum_x + sum_y)/n
+        xbar = (sum_x + sum_y + sum_z)/n
         icomm.send(xbar, dest=0)
         icomm.send(logs, dest=0)
 
@@ -174,15 +193,4 @@ if __name__ == '__main__':
     if 'child' in sys.argv:
         main_child()
 
-def xbar_diff(my_x, my_y, sum_x, sum_y, sum_z, n):
-    xbar = (sum_x + sum_y + sum_z)/n
-    diff = np.linalg.norm(xbar - my_x, ord='fro')**2 + np.linalg.norm(xbar - my_y, ord='fro')**2
-    sum_diff = np.array(0.0)
-    comm.Allreduce([diff, MPI.DOUBLE], [sum_diff, MPI.DOUBLE], op=MPI.SUM)
-    return sum_diff**0.5
 
-def zero_diff(v):
-    sum_v = np.zeros(v[0].shape)
-    v_total = sum(v)
-    comm.Allreduce([v_total, MPI.DOUBLE], [sum_v, MPI.DOUBLE], op=MPI.SUM)
-    return np.linalg.norm(sum_v, ord='fro')

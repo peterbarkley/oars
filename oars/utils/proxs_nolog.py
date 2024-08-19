@@ -171,7 +171,7 @@ class npsdConeApprox():
         # log['time'] = log['end'] - log['start']
         # self.log.append(log)
         if self.iteration % self.check_iter == 0:
-            print('Approx PSD', self.iteration, self.exact_projections, self.lobpcg_iterations, self.U.shape[1], self.max_subspace_dim, self.eigs)
+            print('Approx PSD', self.iteration, self.exact_projections, self.lobpcg_iterations, self.U.shape[1], self.max_subspace_dim)#, self.eigs)
         return Y
 
     def project(self, X):
@@ -224,6 +224,6 @@ class nlinearSubdiff():
         """
         self.counter += 1
         Y = X - t*self.A
-        if self.counter % 10000 == 0:
+        if self.counter % 1000 == 0:
             print('Value', self.counter, -np.trace(self.A @ Y))
         return Y

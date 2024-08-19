@@ -53,6 +53,19 @@ def main_child():
     icomm.Disconnect()
 
 
+def xbar_diff(my_x, my_y, sum_x, sum_y, n, comm):
+    xbar = (sum_x + sum_y)/n
+    diff = np.linalg.norm(xbar - my_x, ord='fro')**2 + np.linalg.norm(xbar - my_y, ord='fro')**2
+    sum_diff = np.array(0.0)
+    comm.Allreduce([diff, MPI.DOUBLE], [sum_diff, MPI.DOUBLE], op=MPI.SUM)
+    return sum_diff**0.5
+
+def zero_diff(v, comm):
+    sum_v = np.zeros(v[0].shape)
+    v_total = sum(v)
+    comm.Allreduce([v_total, MPI.DOUBLE], [sum_v, MPI.DOUBLE], op=MPI.SUM)
+    return np.linalg.norm(sum_v, ord='fro')
+
 def worker(icomm):
     myrank = icomm.Get_rank()
     print('Worker', myrank, 'started')
@@ -102,14 +115,19 @@ def worker(icomm):
             change = max(np.abs(delta_rt - old_delta), vartol, 1e-8)
             # print('Worker', myrank, 'Iteration', itr, 'Delta', delta, 'Change', change, 'Vartol', vartol, 'Check period', check_period, 'old_delta', old_delta, 'v_sq', v_sq)
             check_period = max(1, min(itr_period, int(delta_rt/change)))
+            sum_diff = xbar_diff(my_x, my_y, sum_x, sum_y, n, comm)
+            u0 = v[0] - my_x
+            u1 = v[1] + my_y
+            sum_zero_diff = zero_diff([u0,u1], comm)
             if delta_rt < vartol:
                 if myrank == 0:
-                    print('Converged at iteration', itr, 'Delta', delta_rt)
+                    print('Converged at iteration', itr, 'Delta v', delta_rt, 'Sum diff', sum_diff, 'Sum zero diff', sum_zero_diff, flush=True)
                 break
             old_delta = delta_rt.copy()
         
         if myrank == 0 and itr % itr_period == 0:
-            print('Iteration', itr, 'Delta', old_delta, flush=True)
+            timedelta = (time()-t)
+            print('Iteration', itr, 'time', timedelta, 'Delta v', old_delta, 'Sum diff', sum_diff, 'Sum zero diff', sum_zero_diff, flush=True)
 
     if myrank == 0:
         print('Worker', myrank, 'finished, time', time()-t, flush=True)
