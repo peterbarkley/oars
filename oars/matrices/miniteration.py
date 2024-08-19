@@ -1,15 +1,15 @@
 import pyomo.environ as pyo
 import numpy as np
-from oars.matrices.core import getBlockFixed, getSimilar
+from oars.matrices.core import getBlockFixed, getMinSpectralDifference
 
-def getMinCycle(n, objective=getSimilar, **kwargs):
+def getMinIteration(n, builder=getMinSpectralDifference, **kwargs):
     """
     Get the minimum iteration time algorithm for a given objective function
     and optional keyword arguments
 
     Args:
         n (int): number of resolvents
-        objective (function): function to minimize
+        builder (function): builder function for desired objective with signature `builder(n, fixed_Z, fixed_W, **kwargs)`
         kwargs: additional keyword arguments for the algorithm
 
             - t (list): list of resolvent compute times
@@ -22,7 +22,7 @@ def getMinCycle(n, objective=getSimilar, **kwargs):
             - Zedges (int): the minimum number of edges in Z as a whole
             - Wedges (int): the minimum number of edges in W as a whole
             - minfixed (bool, 'Z', or 'W'): whether to include the number of edges in the objective with weight weight
-            - weight (float): the coefficient for the number of edges in the objective
+            - weight (float): the coefficient for the weight on the sum of edges in the objective
 
     Returns:
         Z (ndarray): Z matrix n x n numpy array
@@ -31,7 +31,7 @@ def getMinCycle(n, objective=getSimilar, **kwargs):
     """
     Z_fixed, W_fixed = getMinFlow(n, **kwargs)
 
-    return objective(n, fixed_Z=Z_fixed, fixed_W=W_fixed, **kwargs)
+    return builder(n, fixed_Z=Z_fixed, fixed_W=W_fixed, **kwargs)
 
 def setWarmstart(n, m, edges):
     Zf, _ = getBlockFixed(n, n//2)
