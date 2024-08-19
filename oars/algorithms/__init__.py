@@ -3,6 +3,7 @@ from .parallel import parallelAlgorithm
 from .distributed import distributedAlgorithm
 from .helpers import ConvergenceChecker, getWarmPrimal, getWarmDual
 from .distributed_block import distributed_block_solve
+from .distributed_three_block import distributed_three_block_solve
 from .distributed_block_restart import distributed_block_solve_restart
 
 __all__ = ['serial', 'serialAlgorithm',
@@ -10,4 +11,4 @@ __all__ = ['serial', 'serialAlgorithm',
            'distributed', 'distributedAlgorithm',
            'helpers', 'ConvergenceChecker',
            'distributed_block', 'distributed_block_solve',
-           'distributed_block_restart', 'distributed_block_solve_restart',]
+           'distributed_block_restart', 'distributed_block_solve_restart', 'distributed_three_block', 'distributed_three_block_solve',]
