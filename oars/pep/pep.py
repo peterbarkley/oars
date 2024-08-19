@@ -538,9 +538,9 @@ def getConstraintMatrices(Z, W=None, ls=None, mus=None, operators=None, alpha=1,
     Args:
         Z (ndarray): Z matrix n x n numpy array
         W (ndarray): W matrix n x n numpy array
-        ls (list): size n numpy array of Lipschitz constants
-        mus (list): size n numpy array of strong convexity parameters where mu[i] < l[i]
-        operators (list): list of n operators
+        ls (list): size n numpy array of Lipschitz constants. Default is 2 if no operators are provided.
+        mus (list): size n numpy array of strong convexity parameters where mu[i] < l[i]. Default is 1 if no operators are provided.
+        operators (list): list of n operators. If None, LipschitzStronglyMonotoneOperator is used with provided ls and mus.
         gamma (float): step size (default is 1 for the dual PEP)
         verbose (bool): verbose output
 
@@ -590,9 +590,9 @@ def getReducedConstraintMatrices(Z, M, ls=None, mus=None, operators=None, alpha=
     Args:
         Z (ndarray): Z matrix n x n numpy array
         M (ndarray): M matrix d x n numpy array
-        ls (list): size n numpy array of Lipschitz constants
-        mus (list): size n numpy array of strong convexity parameters where mu[i] < l[i]
-        operators (list): list of n operators
+        ls (list): size n numpy array of Lipschitz constants. Default is 2 if no operators are provided.
+        mus (list): size n numpy array of strong convexity parameters where mu[i] < l[i]. Default is 1 if no operators are provided.
+        operators (list): list of n operators. If None, LipschitzStronglyMonotoneOperator is used with provided ls and mus
         gamma (float): step size (default is 1 for the dual PEP)
         verbose (bool): verbose output
 
@@ -609,7 +609,6 @@ def getReducedConstraintMatrices(Z, M, ls=None, mus=None, operators=None, alpha=
     if ls is None:
         ls = np.ones(n)*2
     if operators is None:
-        print('No operators provided, using default LipschitzStronglyMonotoneOperator')
         operators = [LipschitzStronglyMonotoneOperator(L=ls[i], mu=mus[i], name=str(i)) for i in range(n)]
 
     # Define the matrices

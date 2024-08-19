@@ -1,8 +1,8 @@
 import pyomo.environ as pyo
 import numpy as np
-from oars.matrices.core import getBlockFixed, getSimilar
+from oars.matrices.core import getBlockFixed, getMinSpectralDifference
 
-def getMinCycle(n, objective=getSimilar, **kwargs):
+def getMinIteration(n, objective=getMinSpectralDifference, **kwargs):
     """
     Get the minimum iteration time algorithm for a given objective function
     and optional keyword arguments

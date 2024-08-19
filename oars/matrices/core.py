@@ -117,7 +117,7 @@ def postprocess(prob, Z, W, eps=0.0, **kwargs):
 
     return Z, W, alpha
 
-def getSimilar(n, **kwargs):
+def getMinSpectralDifference(n, **kwargs):
     '''
     Find convergence matrix W and consensus matrix Z
     that minimize :math:`\\|Z-W\\|`
@@ -139,8 +139,8 @@ def getSimilar(n, **kwargs):
         alpha (float): scaling factor for resolvent if eps is nonzero
 
     Examples:
-        >>> from oars.matrices import getSimilar
-        >>> Z, W = getSimilar(4, fixed_W={(3, 0): 0}, fixed_Z={(1, 0): 0})
+        >>> from oars.matrices import getMinSpectralDifference
+        >>> Z, W = getMinSpectralDifference(4, fixed_W={(3, 0): 0}, fixed_Z={(1, 0): 0})
         >>> print(Z)
         [[ 2.    -0.    -1.645 -0.355]
         [-0.     2.    -0.355 -1.645]
@@ -426,7 +426,7 @@ def getBlockFixed(n, m):
                     W_fixed[(i,j)] = 0
     return Z_fixed, W_fixed
 
-def getBlockMin(n, m, objective=getSimilar, **kwargs):
+def getBlockMin(n, m, builder=getMinSpectralDifference, **kwargs):
     '''
     Get the block-size m matrices for n resolvents
     using the objective function specified
@@ -434,7 +434,7 @@ def getBlockMin(n, m, objective=getSimilar, **kwargs):
     Args:
         n (int): number of resolvents
         m (int or list of ints): block size, either an integer or a list of integers
-        objective (function): objective function
+        builder (function): builder function that takes n (int), fixed_Z (dict), fixed_W (dict) and kwargs and returns Z, W, alpha
         kwargs: keyword arguments for the objective function
 
             - c (float): connectivity parameter
