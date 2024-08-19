@@ -429,13 +429,13 @@ def getBlockFixed(n, m):
 def getBlockMin(n, m, builder=getMinSpectralDifference, **kwargs):
     '''
     Get the block-size m matrices for n resolvents
-    using the objective function specified
+    using the builder function specified
 
     Args:
         n (int): number of resolvents
         m (int or list of ints): block size, either an integer or a list of integers
         builder (function): builder function that takes n (int), fixed_Z (dict), fixed_W (dict) and kwargs and returns Z, W, alpha
-        kwargs: keyword arguments for the objective function
+        kwargs: keyword arguments for the builder function
 
             - c (float): connectivity parameter
             - eps (float): allowable deviation from 2 in Z diagonal
@@ -448,7 +448,7 @@ def getBlockMin(n, m, builder=getMinSpectralDifference, **kwargs):
     
     Examples:
         >>> from oars.matrices import getBlockMin
-        >>> Z, W = getBlockMin(6, 2, objective=getMinResist)
+        >>> Z, W = getBlockMin(6, 2, builder=getMinResist)
         >>> print(Z)
         [[ 2.   0.  -0.5 -0.5 -0.5 -0.5]
         [ 0.   2.  -0.5 -0.5 -0.5 -0.5]
@@ -466,7 +466,7 @@ def getBlockMin(n, m, builder=getMinSpectralDifference, **kwargs):
     '''
     Z_fixed, W_fixed = getBlockFixed(n, m)
 
-    return objective(n, fixed_Z=Z_fixed, fixed_W=W_fixed, **kwargs)
+    return builder(n, fixed_Z=Z_fixed, fixed_W=W_fixed, **kwargs)
 
 def getMfromWCholesky(W):
     '''
