@@ -82,6 +82,25 @@ def getRyu(n):
         Z[i,i] = 2
     return Z, W
 
+def getThreeBlockSimilar(n):
+    '''
+    Get three block similar matrices for Z and W
+    where the blocks are n//4, n//2, n-(n//4 + n//2) in size
+    '''
+    if n % 2 != 0:
+        raise ValueError("n must be even")
+    W = eye(n)*2
+    b_1 = n//4
+    b_2 = n//2 + b_1
+    v = -2/(n//2)
+    W[b_1:b_2,:b_1] = v
+    W[:b_1,b_1:b_2] = v
+    W[b_2:,b_1:b_2] = v
+    W[b_1:b_2,b_2:] = v
+
+    Z = W.copy()
+    return Z, W
+
 def getTwoBlockSimilar(n):
     '''
     Get two block similar matrices for Z and W

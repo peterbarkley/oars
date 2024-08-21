@@ -23,6 +23,7 @@ def getMinIteration(n, builder=getMinSpectralDifference, **kwargs):
             - Wedges (int): the minimum number of edges in W as a whole
             - minfixed (bool, 'Z', or 'W'): whether to include the number of edges in the objective with weight weight
             - weight (float): the coefficient for the weight on the sum of edges in the objective
+            - solver_name (str): the name of the solver to use
 
     Returns:
         Z (ndarray): Z matrix n x n numpy array
@@ -58,7 +59,7 @@ def setWarmstart(n, m, edges):
         for j in range(1, n//2):
             m.fy[k,j] = sec_flow_wt
 
-def getMinFlow(n, t=None, l=None, fixed_X={}, fixed_Y={}, r=None, minfixed=True, weight=None, minZ=2, minW=1, Wedges=None, Zedges=None, solver='gurobi', **kwargs):
+def getMinFlow(n, t=None, l=None, fixed_X={}, fixed_Y={}, r=None, minfixed=True, weight=None, minZ=2, minW=1, Wedges=None, Zedges=None, solver_name='gurobi', **kwargs):
     """
     Get the minimum iteration time algorithm using a flow formulation
 
@@ -75,6 +76,7 @@ def getMinFlow(n, t=None, l=None, fixed_X={}, fixed_Y={}, r=None, minfixed=True,
         Wedges (int): the minimum number of edges in W as a whole
         minfixed (bool, 'Z', or 'W'): whether to include the number of edges in the objective with weight weight
         weight (float): the coefficient for the number of edges in the objective
+        solver_name (str): the name of the solver to use
 
     Returns:
         Z_fixed (dict): dictionary of fixed communication relationships for Z
@@ -221,12 +223,15 @@ def getMinFlow(n, t=None, l=None, fixed_X={}, fixed_Y={}, r=None, minfixed=True,
     m.obj = pyo.Objective(expr=objexpr)
 
     # Solve with Pyomo
-    solver = pyo.SolverFactory(solver)
+    solver = pyo.SolverFactory(solver_name)
 
     # Add time limit
-    solver.options['TimeLimit'] = timelimit
+    if solver_name == 'gurobi':
+        solver.options['TimeLimit'] = timelimit
 
-    solver.solve(m, tee=verbose, warmstart=True)
+        solver.solve(m, tee=verbose, warmstart=True)
+    else:
+        solver.solve(m, tee=verbose)
 
     # Process the results
     Z_fixed = {}
@@ -243,7 +248,7 @@ def getMinFlow(n, t=None, l=None, fixed_X={}, fixed_Y={}, r=None, minfixed=True,
         print('v', pyo.value(m.v))
     return Z_fixed, W_fixed
 
-def getMinCore(n, t=None, l=None, fixed_X={}, fixed_Y={}, r=None, minfixed=True, weight=None, minZ=2, minW=1, Wedges=None, Zedges=None, solver='gurobi', **kwargs):
+def getMinCore(n, t=None, l=None, fixed_X={}, fixed_Y={}, r=None, minfixed=True, weight=None, minZ=2, minW=1, Wedges=None, Zedges=None, **kwargs):
     """
     Get the minimum iteration time algorithm using a core formulation
 
@@ -309,9 +314,6 @@ def getMinCore(n, t=None, l=None, fixed_X={}, fixed_Y={}, r=None, minfixed=True,
     m.fy = pyo.Var(nodes, nodes, domain=pyo.NonNegativeReals)
     m.s = pyo.Var(iters, nodes, domain=pyo.NonNegativeReals)
     m.v = pyo.Var(domain=pyo.NonNegativeReals)
-
-    # Warmstart to 2-block design
-    setWarmstart(n, m, edges)
 
     # Constraints
     def row_sum(mvar, k):

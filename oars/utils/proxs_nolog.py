@@ -192,6 +192,10 @@ class npsdConeApprox():
                     eig = -eig
                 if sum(eig < self.zero_tol) > 0:
                     converged = True
+            except UserWarning:
+                print('Warning in lobpcg, using exact projection')
+                # print(X)
+                converged = False
             except:
                 # print('Error in lobpcg')
                 # print(X)
