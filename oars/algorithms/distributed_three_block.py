@@ -28,12 +28,13 @@ def distributed_three_block_solve(n, data, resolvents, warmstartprimal, warmstar
     icomm.bcast((n, z, w_own, w_other, gamma, alpha, itrs, vartol), root=MPI.ROOT)
     
     for i in range(n//2):
-        icomm.send(data[i], dest=i) #z, w, gamma, alpha, v0
-        icomm.send(data[i+n//2], dest=i) #resolvent
-        icomm.send(resolvents[i], dest=i) #resolvent
-        icomm.send(resolvents[i+n//2], dest=i) #resolvent
-        icomm.send(v0[i], dest=i)
-        icomm.send(v0[i+n//2], dest=i)
+        # icomm.send(data[i], dest=i) #z, w, gamma, alpha, v0
+        # icomm.send(data[i+n//2], dest=i) #resolvent
+        # icomm.send(resolvents[i], dest=i) #resolvent
+        # icomm.send(resolvents[i+n//2], dest=i) #resolvent
+        # icomm.send(v0[i], dest=i)
+        # icomm.send(v0[i+n//2], dest=i)
+        icomm.send((data[i], data[i+n//2], resolvents[i], resolvents[i+n//2], v0[i], v0[i+n//2]), dest=i)
     if verbose:print('Data sent to workers')
         
     x_bar = icomm.recv(source=0)
@@ -67,22 +68,23 @@ def zero_diff(v, comm):
 
 def worker(icomm):
     myrank = icomm.Get_rank()
-    print('Worker', myrank, 'started')
+    # print('Worker', myrank, 'started')
 
     # Build intracommunicator
     comm = MPI.COMM_WORLD
 
     # Receive data from parent
     n, z, w_own, w_other, gamma, alpha, itrs, vartol = icomm.bcast((), root=0)
-    first_data = icomm.recv(source=0)
-    second_data = icomm.recv(source=0)
-    first_resolvent = icomm.recv(source=0)
-    second_resolvent = icomm.recv(source=0)
-    res = [first_resolvent(first_data), second_resolvent(second_data)]
-    first_v0 = icomm.recv(source=0)
-    second_v0 = icomm.recv(source=0)
+    first_data, second_data, first_resolvent, second_resolvent, first_v0, second_v0 = icomm.recv(source=0)
+    # first_data = icomm.recv(source=0)
+    # second_data = icomm.recv(source=0)
+    # first_resolvent = icomm.recv(source=0)
+    # second_resolvent = icomm.recv(source=0)
+    # first_v0 = icomm.recv(source=0)
+    # second_v0 = icomm.recv(source=0)
     v = [first_v0, second_v0]
 
+    res = [first_resolvent(first_data), second_resolvent(second_data)]
     shape = first_v0.shape
     sum_x = np.zeros(shape)
     sum_y = np.zeros(shape)

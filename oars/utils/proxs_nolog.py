@@ -1,6 +1,7 @@
 import numpy as np
 from time import time
-
+import warnings
+warnings.filterwarnings("error")
 class ntraceEqualityIndicator():
     """
     Class for the trace proximal operator

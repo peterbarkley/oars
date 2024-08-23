@@ -3,6 +3,7 @@ import sys
 from mpi4py import MPI
 import numpy as np
 from time import time
+from datetime import datetime
 
 def distributed_block_solve(n, data, resolvents, warmstartprimal, warmstartdual=None, w_own=0, w_other=None, itrs=1001, gamma=0.9, alpha=1.0, vartol=None, verbose=False):
 
@@ -28,13 +29,14 @@ def distributed_block_solve(n, data, resolvents, warmstartprimal, warmstartdual=
     icomm.bcast((n, z, w_own, w_other, gamma, alpha, itrs, vartol), root=MPI.ROOT)
     
     for i in range(n//2):
-        icomm.send(data[i], dest=i) #z, w, gamma, alpha, v0
-        icomm.send(data[i+n//2], dest=i) #resolvent
-        icomm.send(resolvents[i], dest=i) #resolvent
-        icomm.send(resolvents[i+n//2], dest=i) #resolvent
-        icomm.send(v0[i], dest=i)
-        icomm.send(v0[i+n//2], dest=i)
-    if verbose:print('Data sent to workers')
+        icomm.send((data[i], data[i+n//2], resolvents[i], resolvents[i+n//2], v0[i], v0[i+n//2]), dest=i)
+        # icomm.send(data[i], dest=i) #z, w, gamma, alpha, v0
+        # icomm.send(data[i+n//2], dest=i) #resolvent
+        # icomm.send(resolvents[i], dest=i) #resolvent
+        # icomm.send(resolvents[i+n//2], dest=i) #resolvent
+        # icomm.send(v0[i], dest=i)
+        # icomm.send(v0[i+n//2], dest=i)
+    if verbose:print(datetime.now(), 'Data sent to workers', flush=True)
         
     x_bar = icomm.recv(source=0)
     results = icomm.recv(source=0)
@@ -68,22 +70,23 @@ def zero_diff(v, comm):
 
 def worker(icomm):
     myrank = icomm.Get_rank()
-    print('Worker', myrank, 'started')
+    # print(datetime.now(), 'Worker', myrank, 'started')
 
     # Build intracommunicator
     comm = MPI.COMM_WORLD
 
     # Receive data from parent
     n, z, w_own, w_other, gamma, alpha, itrs, vartol = icomm.bcast((), root=0)
-    first_data = icomm.recv(source=0)
-    second_data = icomm.recv(source=0)
-    first_resolvent = icomm.recv(source=0)
-    second_resolvent = icomm.recv(source=0)
-    res = [first_resolvent(first_data), second_resolvent(second_data)]
-    first_v0 = icomm.recv(source=0)
-    second_v0 = icomm.recv(source=0)
+    first_data, second_data, first_resolvent, second_resolvent, first_v0, second_v0 = icomm.recv(source=0)
+    # first_data = icomm.recv(source=0)
+    # second_data = icomm.recv(source=0)
+    # first_resolvent = icomm.recv(source=0)
+    # second_resolvent = icomm.recv(source=0)
+    # first_v0 = icomm.recv(source=0)
+    # second_v0 = icomm.recv(source=0)
     v = [first_v0, second_v0]
 
+    res = [first_resolvent(first_data), second_resolvent(second_data)]
     shape = first_v0.shape
     sum_x = np.zeros(shape)
     sum_y = np.zeros(shape)
@@ -92,6 +95,8 @@ def worker(icomm):
     itr_period = itrs // 10
     check_period = 1
     t = time()
+    if myrank == 0 or myrank == n//2 - 1:
+        print(datetime.now(), 'Worker', myrank, 'started', flush=True)
     for itr in range(itrs):
 
         # First block
@@ -127,10 +132,10 @@ def worker(icomm):
         
         if myrank == 0 and itr % itr_period == 0:
             timedelta = (time()-t)
-            print('Iteration', itr, 'time', timedelta, 'Delta v', old_delta, 'Sum diff', sum_diff, 'Sum zero diff', sum_zero_diff, flush=True)
+            print(datetime.now(), 'Iteration', itr, 'time', timedelta, 'Delta v', old_delta, 'Sum diff', sum_diff, 'Sum zero diff', sum_zero_diff, flush=True)
 
     if myrank == 0:
-        print('Worker', myrank, 'finished, time', time()-t, flush=True)
+        print(datetime.now(), 'Worker', myrank, 'finished, time', time()-t, flush=True)
     log = [{'first_x': my_x, 'second_x': my_y, 'first_v0': v[0], 'second_v0': v[1]}]
     if hasattr(res[0], 'log'):
         log += res[0].log
