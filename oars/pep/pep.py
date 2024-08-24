@@ -184,7 +184,7 @@ class SmoothStronglyConvexFunction(operator):
                             [-firstblock, firstblock, -secondblock, secondblock],
                             [thirdblock, -thirdblock, fourthblock, -fourthblock],
                             [-thirdblock, thirdblock, -fourthblock, fourthblock]])
-        return doubleK
+        return [doubleK], [0]
 
     def get_reduced_class_matrices(self, i, Z, M, alpha=1):
         return [getRedSmoothStrongMatrix(self.L, self.mu, i, Z, M, alpha)]
@@ -200,7 +200,7 @@ class SmoothStronglyConvexFunction(operator):
                             [-firstblock, firstblock, -secondblock, secondblock],
                             [thirdblock, -thirdblock, fourthblock, -fourthblock],
                             [-thirdblock, thirdblock, -fourthblock, fourthblock]])
-        return doubleK
+        return [doubleK], [0]
 
 def getSmoothStrongMatrix(lipschitz, mu, i, Z, alpha=1):
     """
