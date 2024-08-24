@@ -173,8 +173,34 @@ class SmoothStronglyConvexFunction(operator):
     def get_class_matrices(self, i, Z, alpha=1):
         return [getSmoothStrongMatrix(self.L, self.mu, i, Z, alpha)]
 
+    def get_double_class_matrices(self, i, Z, alpha=1):
+        K = getSmoothStrongMatrix(self.L, self.mu, i, Z, alpha)
+        n = Z.shape[0]
+        firstblock = K[:n, :n]
+        secondblock = K[:n, n:]
+        thirdblock = K[n:, :n]
+        fourthblock = K[n:, n:]
+        doubleK = np.block([[firstblock, -firstblock, secondblock, -secondblock],
+                            [-firstblock, firstblock, -secondblock, secondblock],
+                            [thirdblock, -thirdblock, fourthblock, -fourthblock],
+                            [-thirdblock, thirdblock, -fourthblock, fourthblock]])
+        return doubleK
+
     def get_reduced_class_matrices(self, i, Z, M, alpha=1):
         return [getRedSmoothStrongMatrix(self.L, self.mu, i, Z, M, alpha)]
+
+    def get_double_reduced_class_matrices(self, i, Z, M, alpha=1):
+        K = getRedSmoothStrongMatrix(self.L, self.mu, i, Z, M, alpha)
+        d,n = M.shape
+        firstblock = K[:d, :d]
+        secondblock = K[:d, d:]
+        thirdblock = K[d:, :d]
+        fourthblock = K[d:, d:]
+        doubleK = np.block([[firstblock, -firstblock, secondblock, -secondblock],
+                            [-firstblock, firstblock, -secondblock, secondblock],
+                            [thirdblock, -thirdblock, fourthblock, -fourthblock],
+                            [-thirdblock, thirdblock, -fourthblock, fourthblock]])
+        return doubleK
 
 def getSmoothStrongMatrix(lipschitz, mu, i, Z, alpha=1):
     """
