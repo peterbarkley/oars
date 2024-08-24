@@ -87,7 +87,7 @@ def test_tau_smoothstrong(n=4, alpha=1, gamma=0.5):
     ls = np.cumsum(ls)
     mus = np.ones(n)
     mus = np.cumsum(mus)
-    operators = [SmoothStronglyConvexFunction(L=ls[i], mu=mus[i]) for i in range(n)]
+    operators = [SmoothStronglyConvexSubdifferential(L=ls[i], mu=mus[i]) for i in range(n)]
     tau = getContractionFactor(Z, W, None, None, operators=operators, alpha=alpha, gamma=gamma)
     pepit_tau = wc_frugal_resolvent_splitting(L, W, ls, mus, alpha=alpha, gamma=gamma, verbose=-1)
     # print(tau, pepit_tau)
@@ -172,7 +172,7 @@ def test_tau_redsmoothstrong(n=4, alpha=1, gamma=0.5):
     ls = np.cumsum(ls)
     mus = np.ones(n)
     mus = np.cumsum(mus)
-    operators = [SmoothStronglyConvexFunction(L=ls[i], mu=mus[i]) for i in range(n)]
+    operators = [SmoothStronglyConvexSubdifferential(L=ls[i], mu=mus[i]) for i in range(n)]
     tau = getReducedContractionFactor(Z, M, None, None, operators=operators, alpha=alpha, gamma=gamma)
     pepit_tau = wc_reduced_frugal_resolvent_splitting(L, M, ls, mus, alpha=alpha, gamma=gamma, verbose=-1)
     # print(tau, pepit_tau)
@@ -214,7 +214,7 @@ def test_dual_smoothstrong(n, alpha=1):
     ls = np.cumsum(ls)
     mus = np.ones(n)
     mus = np.cumsum(mus)
-    operators = [SmoothStronglyConvexFunction(L=ls[i], mu=mus[i]) for i in range(n)]
+    operators = [SmoothStronglyConvexSubdifferential(L=ls[i], mu=mus[i]) for i in range(n)]
     tau = getContractionFactor(Z, W, None, None, operators=operators, alpha=alpha, gamma=0.5)
     Wo, tau_opt = getOptimalW(Z, operators=operators, alpha=alpha)
     pepit_tau = wc_frugal_resolvent_splitting(L, Wo, ls, mus, alpha=alpha, gamma=1, verbose=-1)
@@ -255,7 +255,7 @@ def test_dual_redsmoothstrong(n, alpha=1):
     ls = np.cumsum(ls)
     mus = np.ones(n)
     mus = np.cumsum(mus)
-    ops = [SmoothStronglyConvexFunction(L=ls[i], mu=mus[i]) for i in range(n)]
+    ops = [SmoothStronglyConvexSubdifferential(L=ls[i], mu=mus[i]) for i in range(n)]
     tau = getReducedContractionFactor(Z, M, operators=ops, alpha=alpha, gamma=0.5)
     gam, tau_opt = getReducedGamma(Z, M, operators=ops, alpha=alpha)
     pepit_tau = wc_reduced_frugal_resolvent_splitting(L, M, ls, mus, alpha=1, gamma=gam, verbose=-1)

@@ -152,7 +152,7 @@ def getRedMonotoneMatrix(mu, i, Z, M, alpha=1):
     return np.block([[zero, -0.5 * (1/alpha) * Miei],
                      [-0.5 * (1/alpha) * Miei.T, xx]])
 
-class SmoothStronglyConvexFunction(operator):
+class SmoothStronglyConvexSubdifferential(operator):
     """
     Class for the smooth strongly convex subdifferential operator in the PEP formulation
 

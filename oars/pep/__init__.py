@@ -1,3 +1,3 @@
-from .pep import getReducedGamma, getGamma, getOptimalW,  getReducedContractionFactor, getContractionFactor, LipschitzStronglyMonotoneOperator, SmoothStronglyConvexFunction, getReducedConstraintMatrices, getConstraintMatrices, operator
+from .pep import getReducedGamma, getGamma, getOptimalW,  getReducedContractionFactor, getContractionFactor, LipschitzStronglyMonotoneOperator, SmoothStronglyConvexSubdifferential, getReducedConstraintMatrices, getConstraintMatrices, operator
 
-__all__ = ['getReducedGamma', 'getGamma', 'getOptimalW', 'getReducedContractionFactor', 'getContractionFactor', 'LipschitzStronglyMonotoneOperator', 'SmoothStronglyConvexFunction', 'getReducedConstraintMatrices', 'getConstraintMatrices', 'operator']
+__all__ = ['getReducedGamma', 'getGamma', 'getOptimalW', 'getReducedContractionFactor', 'getContractionFactor', 'LipschitzStronglyMonotoneOperator', 'SmoothStronglyConvexSubdifferential', 'getReducedConstraintMatrices', 'getConstraintMatrices', 'operator']
