@@ -25,6 +25,7 @@ When using the package in a project, please use this Bibtex entry:
 After cloning the repository, the package can be installed with
 `pip install .`
 
-## Quick Start
+## Use
 
-If you would like to run the examples in the paper, use `pip install .[all]` and run paper.ipynb in the examples directory. Also see the quick start guide in the documentation.
+- See the [quick start guide](docs/source/quickstart.rst) in the documentation.
+- If you would like to run the experiments from [our paper](https://arxiv.org/pdf/2407.16159.pdf), use `pip install .[all]` and run the `paper.ipynb` notebook in the examples directory. 
