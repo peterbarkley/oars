@@ -555,7 +555,8 @@ def getReducedCoreMatrices(gamma, M):
 def getConstraintMatrices(Z, W=None, ls=None, mus=None, operators=None, alpha=1, gamma=1, verbose=False):
     '''
     Get the matrices for the PEP formulation on
-    the iteration :math:`v = v - \\gamma W x` for a given :math:`Z, W`
+    the resolvent splitting method given by equation (12) in the paper, i.e. 
+    where step 2 is given by :math:`v = v - \\gamma W x`, for a given :math:`Z, W`
     over a set of `n` `l_i`-Lipschitz, :math:`\\mu_i`-strongly monotone operators
     or the set of provided operators
 
@@ -569,15 +570,10 @@ def getConstraintMatrices(Z, W=None, ls=None, mus=None, operators=None, alpha=1,
         verbose (bool): verbose output
 
     Returns:
-        tuple: tuple of matrices (Ko, K1, Ki, Kp)
-
-            Ko (ndarray): 2n x 2n matrix for the objective function
-                        :math:`K_o = [I, \\gamma*W; \\gamma*W^T, \\gamma^2 * W^T W]`
-            K1 (ndarray): 2n x 2n matrix for the constraint that v sums to 0
-                        :math:`K_1 = [11^T, 0; 0, 0]`
-            Ki (ndarray): 2n x 2n matrix for the equality constraint
-                        :math:`K_i = [I, 0; 0, 0]`
-            Kp (list): list of interpolation matrices
+        Ko (ndarray): 2n x 2n matrix for the objective function
+        K1 (ndarray): 2n x 2n matrix for the constraint that v sums to 0
+        Ki (ndarray): 2n x 2n matrix for the equality constraint
+        Kp (list): list of interpolation matrices
     '''
     n = Z.shape[0]
     if mus is None:

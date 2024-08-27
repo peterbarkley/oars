@@ -14,11 +14,11 @@ To install oars with the packages required to run all of the examples, run the f
 
 Demo
 
-To generate the demo notebook output, navigate to the examples directory and run the following command:
+View the demo notebook output `here <_static/my_standalone.html>`_ or run the following command to generate the demo notebook:
 
 .. code-block:: bash
 
-    jupyter nbconvert --to html paper.ipynb
+    jupyter nbconvert --to html oars/examples/paper.ipynb 
 
 Usage
 

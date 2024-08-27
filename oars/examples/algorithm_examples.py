@@ -8,21 +8,37 @@ np.set_printoptions(precision=3, suppress=True, linewidth=200)
 
 def testQuad(parallel=False, verbose=False):
     """
-    Test the serial algorithm with a few simple problems
-    including a quadratic and L1 norm
+    Test the algorithm with the following problem:
+    :math:`\\min_{x} \\sum_{i=1}^{n} \\frac{1}{2} (x - d_i)^2`
+
+    Args:
+        parallel (bool): Run the algorithm in parallel
+        verbose (bool): Print verbose output
 
     """
     
     # Test quadratic     
     print("Testing quadratic")
-    vals = np.array([0, 1, 3, 40]) #np.array([2, -3, -7, -8])
+    vals = np.array([0, 1, 3, 40])
     n = len(vals)
     proxs = [quadprox]*n
     x, results = solveMT(n, vals, proxs, itrs=1000, parallel=parallel, vartol=1e-6, gamma=1.0,  verbose=verbose)
     assert(np.isclose(x,11))
 
-    # Test L1
+
+def testL1(parallel=False, verbose=False):
+    '''
+    Test the algorithm with the following problem:
+    :math:`\\min_{x} \\sum_{i=1}^{n} |x - d_i|`
+
+    Args:
+        parallel (bool): Run the algorithm in parallel
+        verbose (bool): Print verbose output
+
+    '''
     print("Testing L1")
+    vals = np.array([0, 1, 3, 40])
+    n = len(vals)
     proxs = [absprox]*n
     lx, lresults = solveMT(n, vals, proxs, alpha=0.8, itrs=1000, vartol=1e-6, parallel=parallel, verbose=verbose)
     assert(1 <= lx <= 3)
@@ -48,6 +64,7 @@ def testSDP(tgt_n=3, parallel=False, verbose=False):
 
 if __name__ == "__main__":
     testQuad(parallel=False, verbose=False)
+    testL1(parallel=False, verbose=False)
     testQuad(parallel=True, verbose=True)
     testSDP(tgt_n=20, parallel=False, verbose=False)
     testSDP(parallel=True, verbose=True)
