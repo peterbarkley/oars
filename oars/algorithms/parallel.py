@@ -266,7 +266,7 @@ def evaluate(n, terminateQueue, terminate, vartol, itrs, checkperiod=1, verbose=
         prev_v = v.copy()
         for i in range(n):
             v[i] = terminateQueue[i].get()
-        delta = sum(np.linalg.norm(v[i], 'fro') for i in range(n))
+        delta = sum(np.linalg.norm(v[i]) for i in range(n))
         if verbose:print("vartol check delta", delta)
         if delta < vartol:
             varcounter += 1

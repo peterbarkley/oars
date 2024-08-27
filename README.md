@@ -20,19 +20,9 @@ When using the package in a project, please use this Bibtex entry:
 }
 ```
 
-## Demo 
-
-Future work
-
 ## Installation
 
-Future work
+After cloning the repository, the package can be installed with
+`pip install .`
 
-## Example
-
-Future work
-
-## Included tools
-
-Future work
-
+If you would like to run the examples in the paper, use `pip install .[all]` and run paper.ipynb in the tests directory.
