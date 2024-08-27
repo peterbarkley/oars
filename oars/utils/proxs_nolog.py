@@ -2,6 +2,21 @@ import numpy as np
 from time import time
 import warnings
 warnings.filterwarnings("error")
+
+class nullProx():
+    """
+    Class for the null proximal operator
+    """
+
+    def __init__(self, dim):
+        self.shape = dim
+
+    def prox(self, X, t=1):
+        """
+        Compute the proximal operator of the null operator
+        """
+        return X
+    
 class ntraceEqualityIndicator():
     """
     Class for the trace proximal operator
@@ -116,7 +131,7 @@ class npsdConeApprox():
         self.subspace_dim_history = []
         self.buffer_size = int((min(max(self.n / 50, 3), 20)))
         self.zero_tol = 1e-7
-        self.check_iter = 100
+        self.check_iter = 500
 
     def get_tolerance(self):
         return max(self.tolconst/(self.iteration**1.01), 1e-7)
@@ -194,7 +209,7 @@ class npsdConeApprox():
                 if sum(eig < self.zero_tol) > 0:
                     converged = True
             except UserWarning:
-                print('Warning in lobpcg, using exact projection')
+                # print('Warning in lobpcg, using exact projection')
                 # print(X)
                 converged = False
             except:
