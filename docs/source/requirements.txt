@@ -1,0 +1,7 @@
+sphinx
+sphinx-autodocgen
+sphinx-rtd-theme
+myst-parser
+easydev
+nbsphinx
+-r ../requirements.txt
