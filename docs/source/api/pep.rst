@@ -5,7 +5,6 @@ PEP API
    :depth: 1
    :local:
 
-getReducedContractionOptGamma, getContractionOptGamma, getOptimalW,  getReducedContractionFactor, getContractionFactor, LipschitzStronglyMonotoneOperator, SmoothStronglyConvexSubdifferential, getReducedConstraintMatrices, getConstraintMatrices
 
 Optimal Step Size
 -----------------

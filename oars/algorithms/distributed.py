@@ -54,10 +54,8 @@ def distributedAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmst
         verbose (bool, optional): True for verbose output
 
     Returns:
-        tuple (x, results): the solution and a list of dictionaries with the results for each resolvent
-
-            x (ndarray): the solution
-            results (list): list of dictionaries with the results for each resolvent
+        x (ndarray): the solution
+        results (list): list of dictionaries with the results for each resolvent
     """
 
     # nodes = L.shape[0]

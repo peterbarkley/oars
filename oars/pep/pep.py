@@ -424,8 +424,8 @@ def getOptimalW(Z, ls=None, mus=None, operators=None, Wref=None, W_fixed={}, alp
 def getContractionOptGamma(Z, W, ls=None, mus=None, operators=None, alpha=1, verbose=False):
     '''
     Use the dual PEP to get the optimal step size gamma
-    for the resolvent splitting method
-    :math:`v = v - \\gamma W x`
+    for the resolvent splitting method given by equation (12) in the paper, i.e. 
+    where step 2 is given by :math:`v = v - \\gamma W x`
 
     Args:
         Z (ndarray): Z matrix n x n numpy array
@@ -449,8 +449,8 @@ def getContractionOptGamma(Z, W, ls=None, mus=None, operators=None, alpha=1, ver
 def getReducedContractionOptGamma(Z, M, ls=None, mus=None, operators=None, alpha=1, verbose=False):
     '''
     Use the dual PEP to get the optimal step size gamma
-    for the reduced resolvent splitting method
-    :math:`z = z + \\gamma M x`
+    for the reduced resolvent splitting method given by equation (11) in the paper, i.e.
+    where step 2 is given by :math:`z = z + \\gamma M x`
 
     Args:
         Z (ndarray): Z matrix n x n numpy array
@@ -529,8 +529,9 @@ def getCoreMatrices(n, gamma, W):
 
 def getReducedCoreMatrices(gamma, M):
     """
-    Get the matrices for the PEP formulation on
-    the reduced iteration :math:`z = z + \\gamma M x`
+    Get the matrices for the PEP formulation on the
+    reduced resolvent splitting method given by equation (11) in the paper, i.e.
+    where step 2 is given by :math:`z = z + \\gamma M x`
 
     Args:
         gamma (float): step size
@@ -552,7 +553,8 @@ def getReducedCoreMatrices(gamma, M):
     return Ko, Ki
 
 def getConstraintMatrices(Z, W=None, ls=None, mus=None, operators=None, alpha=1, gamma=1, verbose=False):
-    '''Get the matrices for the PEP formulation on
+    '''
+    Get the matrices for the PEP formulation on
     the iteration :math:`v = v - \\gamma W x` for a given :math:`Z, W`
     over a set of `n` `l_i`-Lipschitz, :math:`\\mu_i`-strongly monotone operators
     or the set of provided operators
@@ -605,7 +607,8 @@ def getConstraintMatrices(Z, W=None, ls=None, mus=None, operators=None, alpha=1,
 def getReducedConstraintMatrices(Z, M, ls=None, mus=None, operators=None, alpha=1, gamma=1, verbose=False):
     """
     Get the matrices for the PEP formulation on
-    the reduced iteration :math:`z = z + \\gamma M x` for a given :math:`Z, M`
+    the reduced resolvent splitting method given by equation (11) in the paper, i.e.
+    where step 2 is given by :math:`z = z + \\gamma M x`, for a given :math:`Z, M`
     over a set of `n` `l_i`-Lipschitz, :math:`\\mu_i`-strongly convex operators
     or the set of provided operators
 

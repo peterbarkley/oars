@@ -132,7 +132,6 @@ def getTwoBlockSLEM(n):
     Z has twos on the diagonal and 4/(n-1) in the off-diagonal n//2 x n//2 blocks
     W is :math:`2I - \\frac{2}{n}\\mathbf{1}\\mathbf{1}^T`
 
-
     Args:
         n (int): number of resolvents
 

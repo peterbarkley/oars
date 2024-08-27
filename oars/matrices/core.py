@@ -454,8 +454,8 @@ def getBlockFixed(n, m):
 def getBlockMin(n, m, builder=getMinSpectralDifference, **kwargs):
     '''
     Get the d-Block design with block size m (or list of block sizes with length d). 
-    If m in an integer, :math:`d = \\ceil{\\frac{n}{m}}`.
-    Use a provide builder function to specify the objective function to use over the d-Block constraints.
+    If m is an integer, :math:`d = \\text{ceil}(n/m)`.
+    Uses a provided builder function to specify the objective function and any other constraints in addition to the d-Block constraints.
     The default builder is getMinSpectralDifference.
 
     Args:
@@ -468,14 +468,14 @@ def getBlockMin(n, m, builder=getMinSpectralDifference, **kwargs):
             - eps (float): allowable deviation from 2 in Z diagonal
             - gamma (float): scaling parameter for Z
             - adj (bool): whether to use the edge adjacency formulation    
-                
+
     Returns:
         Z (ndarray): (n,n) resolvent matrix
         W (ndarray): (n,n) consensus matrix
         alpha (float): scaling factor for resolvent if eps is nonzero
     
     Examples:
-        >>> from oars.matrices import getBlockMin
+        >>> from oars.matrices import getBlockMin, getMinResist
         >>> Z, W = getBlockMin(6, 2, builder=getMinResist)
         >>> print(Z)
         [[ 2.   0.  -0.5 -0.5 -0.5 -0.5]

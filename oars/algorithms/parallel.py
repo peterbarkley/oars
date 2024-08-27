@@ -4,7 +4,8 @@ from oars.algorithms.helpers import ConvergenceChecker, getWarmPrimal
 from time import time
 
 def parallelAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdual=None, itrs=1001, gamma=0.9, alpha=1.0, vartol=None,  checkperiod=1, verbose=False):
-    """Run the parallel algorithm
+    """Run the frugal resolvent splitting algorithm for W and Z matrices in parallel
+
     Args:
         n (int): the number of resolvents
         data (list): list containing the problem data for each resolvent

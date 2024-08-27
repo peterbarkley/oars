@@ -26,3 +26,6 @@ After cloning the repository, the package can be installed with
 `pip install .`
 
 If you would like to run the examples in the paper, use `pip install .[all]` and run paper.ipynb in the tests directory.
+
+## Quick Start
+

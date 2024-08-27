@@ -24,3 +24,7 @@ Parallel Algorithm
 Distributed Algorithm
 ---------------------
 .. autofunction:: oars.algorithms.distributed.distributedAlgorithm
+
+Distributed Block Algorithm
+---------------------------
+.. autofunction:: oars.algorithms.distributed_block.distributed_block_solve

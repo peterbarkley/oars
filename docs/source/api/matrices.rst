@@ -61,3 +61,15 @@ Minimum Iteration Time
 ----------------------
 .. autofunction:: oars.matrices.getMinIteration
    
+Two Block Design - Similar Matrices
+-----------------------------------
+.. autofunction:: oars.matrices.getTwoBlockSimilar
+
+Two Block Design - SLEM
+-----------------------
+.. autofunction:: oars.matrices.getTwoBlockSLEM
+
+Three Block Design - Similar Matrices
+-------------------------------------
+.. autofunction:: oars.matrices.getThreeBlockSimilar
+   

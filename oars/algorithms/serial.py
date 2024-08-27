@@ -4,7 +4,8 @@ from time import time
 
 def serialAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdual=None, itrs=1001, gamma=0.9, alpha=1.0, vartol=None, objtol=None, objective=None, checkperiod=10, verbose=False):
     """
-    Run the serial algorithm
+    Run the frugal resolvent splitting algorithm defined by Z and W in serial
+
     Args:
         n (int): the number of resolvents
         data (list): list containing the problem data for each resolvent
