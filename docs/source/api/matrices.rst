@@ -7,7 +7,7 @@ Matrix Development API
 
 Similar matrices
 ----------------
-.. autofunction:: oars.matrices.getSimilar
+.. autofunction:: oars.matrices.getMinSpectralDifference
 
 Minimum Second-Largest Eigenvalue
 ---------------------------------
@@ -59,5 +59,5 @@ Ryu-Tam Design
 
 Minimum Iteration Time
 ----------------------
-.. autofunction:: oars.matrices.getMinCycle
+.. autofunction:: oars.matrices.getMinIteration
    

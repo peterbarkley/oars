@@ -5,15 +5,15 @@ PEP API
    :depth: 1
    :local:
 
-getReducedGamma, getGamma, getOptimalW,  getReducedContractionFactor, getContractionFactor, LipschitzStronglyMonotoneOperator, SmoothStronglyConvexFunction, getReducedConstraintMatrices, getConstraintMatrices
+getReducedContractionOptGamma, getContractionOptGamma, getOptimalW,  getReducedContractionFactor, getContractionFactor, LipschitzStronglyMonotoneOperator, SmoothStronglyConvexSubdifferential, getReducedConstraintMatrices, getConstraintMatrices
 
 Optimal Step Size
 -----------------
-.. autofunction:: oars.pep.getGamma
+.. autofunction:: oars.pep.getContractionOptGamma
 
 Reduced Optimal Step Size
 -------------------------
-.. autofunction:: oars.pep.getReducedGamma
+.. autofunction:: oars.pep.getReducedContractionOptGamma
 
 Optimal Consensus Matrix (W)
 ----------------------------
@@ -33,7 +33,7 @@ Lipschitz Strongly Monotone Operator
 
 Smooth Strongly Convex Function
 -------------------------------
-.. autoclass:: oars.pep.SmoothStronglyConvexFunction
+.. autoclass:: oars.pep.SmoothStronglyConvexSubdifferential
 
 Constraint Matrices
 -------------------

@@ -7,7 +7,7 @@ Tools API
 
 Iteration Time
 --------------
-.. autofunction:: oars.utils.getCycleTime
+.. autofunction:: oars.utils.getIterationTime
 
 Gantt Chart
 -----------
