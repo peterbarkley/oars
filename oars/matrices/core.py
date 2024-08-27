@@ -453,8 +453,10 @@ def getBlockFixed(n, m):
 
 def getBlockMin(n, m, builder=getMinSpectralDifference, **kwargs):
     '''
-    Get the block-size m matrices for n resolvents
-    using the builder function specified
+    Get the d-Block design with block size m (or list of block sizes with length d). 
+    If m in an integer, :math:`d = \\ceil{\\frac{n}{m}}`.
+    Use a provide builder function to specify the objective function to use over the d-Block constraints.
+    The default builder is getMinSpectralDifference.
 
     Args:
         n (int): number of resolvents
@@ -465,7 +467,8 @@ def getBlockMin(n, m, builder=getMinSpectralDifference, **kwargs):
             - c (float): connectivity parameter
             - eps (float): allowable deviation from 2 in Z diagonal
             - gamma (float): scaling parameter for Z
-            - adj (bool): whether to use the edge adjacency formulation        
+            - adj (bool): whether to use the edge adjacency formulation    
+                
     Returns:
         Z (ndarray): (n,n) resolvent matrix
         W (ndarray): (n,n) consensus matrix

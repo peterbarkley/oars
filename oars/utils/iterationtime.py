@@ -3,11 +3,11 @@ import numpy as np
 import cvxpy as cvx
 from plotly.express import timeline
 from oars.matrices.core import getMfromWCholesky
-from oars.pep import getReducedGamma
+from oars.pep import getReducedContractionOptGamma
 
-def getCycleTime(t, l, Z, W, itrs=None):
+def getIterationTime(t, l, Z, W, itrs=None):
     '''
-    Get cycle time using critical path method
+    Get iteration time using critical path method
     
     Args:
         t (list): list of resolvent times for each agent
@@ -28,8 +28,8 @@ def getCycleTime(t, l, Z, W, itrs=None):
         >>> t = [1, 2, 3]
         >>> l = np.array([[0, 1, 2], [1, 0, 1], [2, 1, 0]])
         >>> Z, W = getMT(3)
-        >>> cycle_length, s, X = getCycleTime(t, l, Z, W)
-        >>> cycle_length
+        >>> itr_t, s, X = getIterationTime(t, l, Z, W)
+        >>> itr_t
         6.999999999996042
         >>> s
         array([[ 0.,  2.,  5.],
@@ -105,7 +105,7 @@ def getGantt(t, l, Z, W, title="Example", itrs=None):
     n = len(t)
     if itrs is None:
         itrs = 2*n
-    tt, s, x = getCycleTime(t, l, Z, W, itrs=itrs)
+    tt, s, x = getIterationTime(t, l, Z, W, itrs=itrs)
     dflist = []
 
     for i in range(itrs): # Iterations
@@ -131,7 +131,7 @@ def getGantt(t, l, Z, W, title="Example", itrs=None):
 
 def getMetrics(Z, W, t=None, l=None, ls=None, mus=None, contraction_target=0.5):
     '''
-    Return the cycle time, contraction factor, cycles to contraction target, 
+    Return the iteration time, contraction factor, cycles to contraction target, 
     and total_time to contraction target for the Cholesky reduced algorithm design 
     using the optimal step size
 
@@ -145,7 +145,7 @@ def getMetrics(Z, W, t=None, l=None, ls=None, mus=None, contraction_target=0.5):
         contraction_target (float, optional): target contraction factor (default 0.5)
 
     Returns:
-        cycle (float): cycle time
+        cycle (float): iteration time
         tau (float): contraction factor
         contraction_cycles (int): cycles to contraction_target
         total_time (float): total time to target
@@ -159,7 +159,7 @@ def getMetrics(Z, W, t=None, l=None, ls=None, mus=None, contraction_target=0.5):
     n = Z.shape[0]
     if t is None: t = np.ones(n)
     if l is None: l = np.ones((n,n))
-    cycle, _, _ = getCycleTime(t, l, Z, W)
+    cycle, _, _ = getIterationTime(t, l, Z, W)
     M = getMfromWCholesky(W)
     if ls is None:
         ls = np.ones(n)*2
@@ -167,7 +167,7 @@ def getMetrics(Z, W, t=None, l=None, ls=None, mus=None, contraction_target=0.5):
     if mus is None:
         mus = np.ones(n)
         mus[n-1] = 0
-    gam, tau = getReducedGamma(Z, M, ls, mus)
+    tau, gam = getReducedContractionOptGamma(Z, M, ls, mus)
     contraction_cycles = np.ceil(np.log(contraction_target)/np.log(tau))
     total_time = cycle*contraction_cycles
     return cycle, tau, contraction_cycles, total_time

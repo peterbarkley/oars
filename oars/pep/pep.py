@@ -292,15 +292,11 @@ def getReducedContractionFactor(Z, M, ls=None, mus=None, operators=None, alpha=1
         
     '''
     d, n = M.shape
-
-    #Ko, Ki, Kmu, Kl = getGramsOld(Z, M, ls=ls, mus=mus, alpha=alpha, gamma=gamma)
     Ko, Ki, Kp = getReducedConstraintMatrices(Z, M, ls=ls, mus=mus, operators=operators, alpha=alpha, gamma=gamma)
 
     # Build SDP
     G = cvx.Variable((d+n, d+n), PSD=True)
 
-    #constraints = [cvx.trace(Kl[i] @ G) >= 0 for i in range(n)]
-    #constraints += [cvx.trace(Kmu[i] @ G) >= 0 for i in range(n)]
     constraints = [cvx.trace(Kpi @ G) >= 0 for Kpi in Kp]
     constraints += [cvx.trace(Ki @ G) == 1]
 
@@ -425,7 +421,7 @@ def getOptimalW(Z, ls=None, mus=None, operators=None, Wref=None, W_fixed={}, alp
 
     return Wvar.value, prob.value
 
-def getGamma(Z, W, ls=None, mus=None, operators=None, alpha=1, verbose=False):
+def getContractionOptGamma(Z, W, ls=None, mus=None, operators=None, alpha=1, verbose=False):
     '''
     Use the dual PEP to get the optimal step size gamma
     for the resolvent splitting method
@@ -441,16 +437,16 @@ def getGamma(Z, W, ls=None, mus=None, operators=None, alpha=1, verbose=False):
         verbose (bool): verbose output
 
     Returns:
+        tau (float): contraction factor using the optimal step size
         gamma (float): optimal step size
-        tau (float): contraction factor
     '''
     Wvar, tau = getOptimalW(Z, ls=ls, mus=mus, operators=operators, Wref=W, alpha=alpha, verbose=verbose)
     if Wvar is None:
         return None, None
     gamma = Wvar[0,0]/W[0,0]
-    return gamma, tau
+    return tau, gamma
 
-def getReducedGamma(Z, M, ls=None, mus=None, operators=None, alpha=1, verbose=False):
+def getReducedContractionOptGamma(Z, M, ls=None, mus=None, operators=None, alpha=1, verbose=False):
     '''
     Use the dual PEP to get the optimal step size gamma
     for the reduced resolvent splitting method
@@ -466,8 +462,8 @@ def getReducedGamma(Z, M, ls=None, mus=None, operators=None, alpha=1, verbose=Fa
         verbose (bool): verbose output
 
     Returns:
+        tau (float): contraction factor using the optimal step size
         gamma (float): optimal step size
-        tau (float): contraction factor
     '''
     Ko, Ki, Kp = getReducedConstraintMatrices(Z, M, ls=ls, mus=mus, operators=operators, alpha=1)
     
@@ -499,7 +495,7 @@ def getReducedGamma(Z, M, ls=None, mus=None, operators=None, alpha=1, verbose=Fa
         print(S.value)
         print(Stilde.value)
 
-    return gam.value[0], prob.value
+    return prob.value, gam.value[0]
 
 def getCoreMatrices(n, gamma, W):
     '''
