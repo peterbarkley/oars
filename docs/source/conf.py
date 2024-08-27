@@ -59,7 +59,7 @@ autodocgen_config = [{
 }]
 
 autoclass_content = 'both'
-
+autodoc_mock_imports = ['mpi4py', 'pandas', 'PEPit', 'plotly']
 # Include or not the special methods
 napoleon_include_special_with_doc = False
 

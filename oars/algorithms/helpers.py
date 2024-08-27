@@ -77,7 +77,7 @@ def getWarmDual(d):
     
     Args:
         d (dict): dictionary with keys 'M' and 'u'
-            M (ndarray): (n-1) by n ndarray for algorithm :math:`w^{k+1} = w^k + \gamma M^T x^k`
+            M (ndarray): (n-1) by n ndarray for algorithm :math:`w^{k+1} = w^k + \\gamma M^T x^k`
             u (ndarray): (n-1) by x.shape ndarray of dual values
 
     Returns:

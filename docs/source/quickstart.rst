@@ -14,7 +14,7 @@ To install oars with the packages required to run all of the examples, run the f
 
 Demo
 
-View the demo notebook output `here <_static/my_standalone.html>`_ or run the following command to generate the demo notebook:
+View the demo notebook output `here <_static/paper.html>`_ or run the following command to generate the demo notebook:
 
 .. code-block:: bash
 
@@ -75,3 +75,4 @@ The following examples demonstrate how to use the package:
 
     # Get the optimal step size for the iterates in algorithm formulation (11)
     tau, gamma = oars.pep.getReducedContractionOptGamma(Z, M, ls=ls, mus=mus)
+
