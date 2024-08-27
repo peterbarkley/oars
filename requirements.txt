@@ -2,3 +2,6 @@ cvxpy
 numpy
 scipy
 pyomo
+pandas
+mpi4py
+PEPit
