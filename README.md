@@ -25,11 +25,14 @@ When using the package in a project, please use this Bibtex entry:
 After cloning the repository, the package can be installed with
 `pip install .`
 
-## Use
+## Quick Start
 
-- See the [quick start guide](docs/source/quickstart.rst) in the documentation.
-- If you would like to run the experiments from [our paper](https://arxiv.org/pdf/2407.16159.pdf), use `pip install .[all]` and run the `paper.ipynb` notebook in the examples directory.
+See the [quick start guide]([docs/source/quickstart.rst](https://oars.readthedocs.io/en/latest/quickstart.html) in the documentation.
 
 ## Documentation
 
 You can find the [documentation](https://oars.readthedocs.io/) for this package on readthedocs.
+
+## Reproducibility
+
+If you would like to run the experiments from [our paper](https://arxiv.org/pdf/2407.16159.pdf), use `pip install .[all]` and run the `paper.ipynb` notebook in the examples directory.
