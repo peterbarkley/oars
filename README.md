@@ -27,7 +27,7 @@ After cloning the repository, the package can be installed with
 
 ## Quick Start
 
-See the [quick start guide]([docs/source/quickstart.rst](https://oars.readthedocs.io/en/latest/quickstart.html) in the documentation.
+See the [quick start guide](https://oars.readthedocs.io/en/latest/quickstart.html) in the documentation.
 
 ## Documentation
 
