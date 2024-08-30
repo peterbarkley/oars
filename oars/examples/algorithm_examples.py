@@ -1,8 +1,9 @@
 import numpy as np
-from oars import solveMT, solve
 from time import time
+from oars import solveMT, solve
 from oars.utils.proxs import *
-from oars.utils.proxs_nolog import *
+from oars.matrices import getFull, getBlockMin, getMT, getThreeBlockSimilar
+from oars.pep import getConstraintMatrices
 np.set_printoptions(precision=3, suppress=True, linewidth=200)
 
 
@@ -45,18 +46,32 @@ def testL1(parallel=False, verbose=False):
 
 
 def testSDP(tgt_n=3, parallel=False, verbose=False):
+    '''
+    Test the algorithm over the PEP SDP on the MT matrices
+    :math:`\\min_X \\langle A_0, X \\rangle` 
+    s.t. :math:`\\langle A_i, X \\rangle = b_i, i=1,2`
+         :math:`\\langle A_i, X \\rangle \\geq b_i, i=3 \\dots tgt_n`
+         :math:`X \\succeq 0`
+
+    Args:
+        tgt_n (int): Number of constraints
+        parallel (bool): Run the algorithm in parallel
+        verbose (bool): Print verbose output
+
+
+    '''
+
     print("Testing SDP")
-    from oars.matrices import getFull, getBlockMin, getMT, getThreeBlockSimilar
-    from oars.pep import getConstraintMatrices
+
     Z, W = getMT(tgt_n)
     Ko, K1, Ki, Kp = getConstraintMatrices(Z, W, gamma=0.5)
     dim = 2*tgt_n + 4
     Zd, Wd = getThreeBlockSimilar(dim) 
 
-    proxlist = [ntraceEqualityIndicator, ntraceEqualityIndicator, nlinearSubdiff] + [ntraceHalfspaceIndicator for _ in Kp]
+    proxlist = [traceEqualityIndicator, traceEqualityIndicator, linearSubdiff] + [traceHalfspaceIndicator for _ in Kp]
     data = [ {'A':Ki, 'v':1}, {'A':K1, 'v':0}, -Ko] + Kp 
     pos = 0
-    proxlist.insert(pos, npsdConeApprox)
+    proxlist.insert(pos, psdConeApprox)
     data.insert(pos, (2*tgt_n, 2*tgt_n))
     x, results = solve(dim, data, proxlist, W=Wd, Z=Zd, parallel=parallel, itrs=1000, gamma=0.8, checkperiod=10, verbose=verbose) 
 

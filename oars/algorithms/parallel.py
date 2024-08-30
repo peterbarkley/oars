@@ -179,14 +179,14 @@ def subproblem(i, data, problem_builder, v0, W, L, comms_data, queue, gamma=0.5,
     itr_period = itrs//10
     while itr < itrs:
         if terminate is not None and terminate.value != 0:
-            if verbose:
-                print('Node', i, 'received terminate value', terminate.value, 'on iteration', itr)
+            # if verbose:
+            #     print('Node', i, 'received terminate value', terminate.value, 'on iteration', itr)
             if terminate.value < itr:
                 break
                 #terminate.value = itr + 1
             itrs = terminate.value
-        if itr % itr_period == 0:
-            print(f'Node {i} iteration {itr}')
+        if itr % itr_period == 0 and i == 0 and verbose:
+            print(f'Iteration {itr}')
 
         # Get data from upstream L queue
         for k in comms_data['up_LQ']:
