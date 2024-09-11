@@ -1,8 +1,8 @@
 from .iterationtime import getIterationTime, getGantt, getMetrics
 from .proxs import *
+from .arrayprox import *
 from .coneProxs import *
-from .proxs_nolog import *
 __all__ = ['iterationtime', 'getGantt', 'getIterationTime', 'getMetrics', 
-'proxs', 'quadprox', 'absprox', 'psdCone', 'psdConeApprox', 'traceEqualityIndicator',
+'proxs', 'quadprox', 'absprox', 'psdCone', 'psdConeApprox', 'psdConeApproxLinear', 'traceEqualityIndicator',
 'traceHalfspaceIndicator', 'linearSubdiff',
-'psdConeAlt' , 'proxs_nolog', 'npsdCone', 'npsdConeApprox', 'nlinearSubdiff', 'ntraceEqualityIndicator', 'ntraceHalfspaceIndicator',]
+'psdConeAlt' , 'traceEqualityIndicatorArray', 'traceHalfspaceIndicatorArray','psdConeApproxArray']

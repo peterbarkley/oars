@@ -89,10 +89,10 @@ def serialAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdu
             wx[i] = sum(W[i,j]*all_x[j] for j in range(n))       
             all_v[i] = all_v[i] - gamma*wx[i]
             if verbose:
-                print("Change in w", i, ":", np.linalg.norm(gamma*wx[i]))
+                print("Change in v", i, ":", np.linalg.norm(gamma*wx[i]))
         if verbose and itr % verbose_itr == 0:
             for i in range(n):    
-                print("Difference across x", i, i-1, np.linalg.norm(all_x[i]-all_x[i-1]))
+                print("Difference across x", i, i-1, ":", np.linalg.norm(all_x[i]-all_x[i-1]))
             for i in range(n):
                 print('x', i, all_x[i])
                 print('v', i, all_v[i])

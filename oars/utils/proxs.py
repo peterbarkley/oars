@@ -71,7 +71,7 @@ class traceEqualityIndicator(baseProx):
         """
         Scale the matrix A by the squared Frobenius norm
         """    
-        return A/np.linalg.norm(A, 'fro')**2
+        return A/np.linalg.norm(A)**2
 
     @_log
     def prox(self, X, t=1):
@@ -79,13 +79,45 @@ class traceEqualityIndicator(baseProx):
         Compute the proximal operator of the trace norm
         """
         
-        ax = np.trace(self.A @ X)
+        ax = np.sum(self.A * X)
         if np.isclose(ax, self.v):
             return X
         Y = X - (ax - self.v)*self.U
         
         return Y
 
+
+class traceInequalityIndicator(baseProx):
+    """
+    Class for the trace proximal operator
+    """
+
+    def __init__(self, data):
+        self.A = data['A']
+        self.v = data['v']
+        self.shape = self.A.shape
+        self.scale()
+        super().__init__()
+
+    def scale(self):
+        """
+        Scale the matrix A by the squared Frobenius norm
+        """    
+        self.U = A/np.linalg.norm(A)**2
+
+    @_log
+    def prox(self, X, t=1):
+        """
+        Compute the proximal operator of the trace norm
+        """
+        
+        ax = np.sum(self.A * X)
+        
+        if ax >= self.v:
+            return X
+        
+        return X - (ax-self.v)*self.U
+    
 class traceHalfspaceIndicator(baseProx):
     """
     Class for the trace proximal operator
@@ -101,7 +133,7 @@ class traceHalfspaceIndicator(baseProx):
         """
         Scale the matrix A by the squared Frobenius norm
         """    
-        return A/np.linalg.norm(A, 'fro')**2
+        return A/np.linalg.norm(A)**2
 
     @_log
     def prox(self, X, t=1):
@@ -109,7 +141,7 @@ class traceHalfspaceIndicator(baseProx):
         Compute the proximal operator of the trace norm
         """
         
-        ax = np.trace(self.A @ X)
+        ax = np.sum(self.A * X)
         
         if ax >= 0:
             return X
@@ -230,7 +262,7 @@ class psdConeApprox(baseProx):
         
         self.iteration += 1
         converged = False
-        if self.U.shape[1] < self.max_subspace_dim and self.iteration > 1:
+        if (self.U.shape[1] < self.max_subspace_dim) and (self.iteration > 1):
             try:
                 eig, vec = lobpcg(X, self.U, largest=self.is_subspace_positive, tol=self.get_tolerance(), maxiter=self.max_iter)
                 self.lobpcg_iterations += 1 # could add retResidualHistory and add len(retResidualHistory) to the iterations

@@ -3,7 +3,7 @@ from time import time
 from oars import solveMT, solve
 from oars.utils.proxs import *
 from oars.matrices import getFull, getBlockMin, getMT, getThreeBlockSimilar
-from oars.pep import getConstraintMatrices
+from oars.pep import getConstraintMatrices, getContractionFactor
 np.set_printoptions(precision=3, suppress=True, linewidth=200)
 
 
@@ -76,6 +76,7 @@ def testSDP(tgt_n=3, parallel=False, verbose=False):
     x, results = solve(dim, data, proxlist, W=Wd, Z=Zd, parallel=parallel, itrs=1000, gamma=0.8, checkperiod=10, verbose=verbose) 
 
     print(np.trace(Ko @ x))
+    print(getContractionFactor(Z, W))
 
 if __name__ == "__main__":
     testQuad(parallel=False, verbose=False)
