@@ -130,12 +130,12 @@ def worker(icomm):
         v[0] = v[0] - update_0
         v[1] = v[1] - update_1
 
-        if itr % check_period == 0:
+        if itr % itr_period == 0:
             v_sq = np.linalg.norm(update_0)**2 + np.linalg.norm(update_1)**2
             comm.Allreduce([v_sq, MPI.DOUBLE], [delta, MPI.DOUBLE], op=MPI.SUM)
             delta_rt = np.sqrt(delta)
-            change = max(np.abs(delta_rt - old_delta), vartol, 1e-8)
-            check_period = max(1, min(itr_period, int(delta_rt/change)))
+            # change = max(np.abs(delta_rt - old_delta), vartol, 1e-8)
+            # check_period = max(1, min(itr_period, int(delta_rt/change)))
             sum_diff = xbar_diff(my_x, my_y, sum_x, sum_y, n, comm)
             u0 = v[0] - my_x
             u1 = v[1] + my_y

@@ -3,6 +3,7 @@ from time import time
 import warnings
 warnings.filterwarnings("error")
 from .proxs import baseProx, _log
+from scipy.sparse.linalg import lobpcg
 
 class traceArray(baseProx):
     """
