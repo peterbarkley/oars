@@ -3,6 +3,6 @@ from .proxs import *
 from .arrayprox import *
 from .coneProxs import *
 __all__ = ['iterationtime', 'getGantt', 'getIterationTime', 'getMetrics', 
-'proxs', 'quadprox', 'absprox', 'psdCone', 'psdConeApprox', 'psdConeApproxLinear', 'traceEqualityIndicator',
+'proxs', 'quadprox', 'absprox', 'psdCone', 'psdConeApprox',  'traceEqualityIndicator',
 'traceHalfspaceIndicator', 'linearSubdiff',
-'psdConeAlt' , 'traceEqualityIndicatorArray', 'traceHalfspaceIndicatorArray','psdConeApproxArray']
+'psdConeAlt' , 'traceEqualityIndicatorArray', 'traceInequalityIndicatorArray','psdConeApproxArray']

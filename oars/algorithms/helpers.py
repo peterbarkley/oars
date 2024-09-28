@@ -67,9 +67,8 @@ class ConvergenceChecker():
 
 
 # Splitting Algorithm Execution Functions
-def getWarmPrimal(x, L):
-    n = L.shape[0]
-    P = (np.eye(n)-L)@np.ones(n)
+def getWarmPrimal(x, Z):
+    P = np.sum(np.tril(Z, -1), axis=1) + 1
     return [i*x for i in P]
 
 def getWarmDual(d):
@@ -86,3 +85,20 @@ def getWarmDual(d):
     M = d['M']
     u = d['u']
     return -u@M
+
+def getDuals(v, x, Z):
+    """
+    Get the dual values for the splitting algorithm
+    using the formula :math:`u = v + (L-I)x`
+    where :math:`L` is the lower triangular part of the -Z matrix
+
+    Args:
+        v (list): list of iterate values
+        x (list): list of primal values
+        Z (ndarray): Z matrix
+
+    Returns:
+        list: list of dual values
+    """
+    n = len(v)
+    return [v[i] - sum(Z[i,j]*x[j] for j in range(i)) - x[i] for i in range(n)]

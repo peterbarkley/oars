@@ -1,18 +1,18 @@
 # Algorithm Design Functions
 import numpy as np
-from oars.matrices import getMT
+from oars.matrices import getMT, getFull
 
-def solve(n, data, resolvents, W, Z, parallel=False, **kwargs):
+def solve(n, data, resolvents, W=None, Z=None, parallel=False, **kwargs):
     '''
     
     Solve the problem with a given W and Z matrix
 
     Args:
         n (int): the number of nodes
-        data (list): list of dictionaries containing the problem data
+        data (list): list containing the problem data for each resolvent
         resolvents (list): list of uninitialized resolvent classes
-        W (ndarray): W matrix
-        Z (ndarray): Z matrix
+        W (ndarray): W matrix (optional, default is fully connected)
+        Z (ndarray): Z matrix (optional, default is fully connected)
         parallel (bool): whether to run the algorithm in parallel
         kwargs: additional keyword arguments for the algorithm
 
@@ -47,7 +47,9 @@ def solve(n, data, resolvents, W, Z, parallel=False, **kwargs):
     else:
         from oars.algorithms.serial import serialAlgorithm
         alg = serialAlgorithm
-        
+    
+    if W is None or Z is None:
+        Z, W = getFull(n)
     x, results = alg(n, data, resolvents, W, Z, **kwargs)
     return x, results
 
