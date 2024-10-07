@@ -610,3 +610,38 @@ def getIncidence(W):
                 M[k, j] = -val
                 k += 1
     return M
+
+
+def testMatrices(Z, W):
+    """Test that L and W are valid consensus and resolvent matrices"""
+    n = Z.shape[0]
+
+    L = -np.tril(Z,-1)
+    # Test that L is a resolvent matrix
+    # Z sums to 0
+    assert(np.isclose(np.sum(Z), 0.0))
+    
+    # Z is PSD
+    assert(np.all(np.linalg.eigvals(Z) >= -1e-7))
+
+    # Diagonal of L is 0
+    # assert(np.all(np.diag(L) == 0))
+
+    # Test that W is a consensus matrix
+    # W is row stochastic
+    assert(np.all(np.isclose(np.sum(W, axis=1), 0)))
+    # W is PSD
+    assert(np.all(np.linalg.eigvals(W) >= -1e-7))
+    # W is symmetric
+    assert(np.all(np.isclose(W, W.T)))
+    # W second smallest eigenvalue is positive
+    assert(sorted(np.linalg.eigvals(W))[1] > 0) #1-np.cos(np.pi/n))
+    # At least n-1 entries in the lower triangle of W are non-zero
+    assert(np.sum(np.tril(W,-1) != 0) >= n-1)
+
+    # Test that L and W are related
+    # Z = 2*np.eye(n) - L - L.T
+    D = Z - W
+    # Z - W is PSD
+    v = np.linalg.eigvals(D)
+    assert(np.all(v >= -1e-7))
