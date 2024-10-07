@@ -23,8 +23,8 @@ def getCore(n, fixed_Z={}, fixed_W={}, c=None, eps=0.0, gamma=1.0, adj=False, **
         fixed_Z (dict): dictionary of fixed Z values with keys as (i,j) tuples
         fixed_W (dict): dictionary of fixed W values with keys as (i,j) tuples
         c (float): connectivity parameter (default 2*(1-cos(pi/n)))
-        eps (float): epsilon for Z[0,0] = 2 + eps constraint
-        gamma (float): scaling parameter for Z
+        eps (float): nonnegative epsilon for Z[0,0] = 2 + eps constraint (default 0.0)
+        gamma (float): scaling parameter for Z (default 1.0)
         adj (bool): whether to use the edge adjacency formulation
         kwargs: additional keyword arguments for the algorithm
         
@@ -56,8 +56,9 @@ def getCore(n, fixed_Z={}, fixed_W={}, c=None, eps=0.0, gamma=1.0, adj=False, **
         c = 2*(1-np.cos(np.pi/n))
 
     # Variables
+    t = cvx.Variable()
     if not adj:
-        W = cvx.Variable((n,n), PSD=True)
+        W = cvx.Variable((n,n), symmetric=True)
         Z = cvx.Variable((n,n), symmetric=True)
     else:
         Mz = getIncidenceFixed(n, fixed_Z)
@@ -72,18 +73,24 @@ def getCore(n, fixed_Z={}, fixed_W={}, c=None, eps=0.0, gamma=1.0, adj=False, **
         W = Mw.T @ cvx.diag(w) @ Mw
 
     # Constraints
-    cons = [gamma*Z >> W, # Z - W is PSD
-            cvx.lambda_sum_smallest(W, 2) >= c, # Fiedler value constraint
+    ones = 4*np.outer(np.ones(n), np.ones(n))
+    cons = [W + ones - t*np.eye(n) >> 0, # Fiedler value constraint
+            t >= c, # Connectivity constraint
+            gamma*Z >> W, # Z - W is PSD            
             cvx.sum(W, axis=1) == 0, # W sums to zero
-            cvx.sum(Z, axis=1) == 0, # Z sums to zero
+            cvx.sum(Z) == 0] # Z sums to zero
+
+    if eps != 0.0:
+        cons += [
             2-eps <= Z[0,0],
             Z[0,0] <= 2+eps] # bounds on Z diagonal entries
-    
-    cons += [Z[i,i] == Z[0,0] for i in range(1,n)] # Z diagonal entries equal to one another
+        cons += [Z[i,i] == Z[0,0] for i in range(1,n)] # Z diagonal entries equal to one another
+    else:
+        cons += [Z[i,i] == 2 for i in range(n)] # Z diagonal entries equal to 2
 
     # Set fixed Z and W values
-    cons += [Z[idx] == val for idx,val in fixed_Z.items()]
-    cons += [W[idx] == val for idx,val in fixed_W.items()]
+    cons += [Z[idx] == val for idx,val in fixed_Z.items() if not adj or val != 0]
+    cons += [W[idx] == val for idx,val in fixed_W.items() if not adj or val != 0]
 
     return Z, W, cons    
 
@@ -103,7 +110,7 @@ def getIncidenceFixed(n, fixed):
     M = []
     for i in range(n):
         for j in range(i):
-            if (i,j) in fixed and (fixed[i,j] == 0 or fixed[j,i] == 0):
+            if fixed.get((i,j), 1) == 0 or fixed.get((j,i), 1) == 0:
                 continue
             else:
                 row = np.zeros(n)
@@ -245,10 +252,20 @@ def getMaxConnectivity(n, vz=1.0, vw=1.0, **kwargs):
 
     Z, W, cons = getCore(n, **kwargs)
 
+    # Additional variables
+    t = cvx.Variable()
+    s = cvx.Variable()
+
+    # Additional parameter
+    ones = 4*np.ones((n,n))
+
+    # Constraints
+    cons = cons[2:] # Remove previous connectivity constraint
+    cons += [W + ones - t*np.eye(n) >> 0, # Fiedler value constraint
+            Z + ones - s*np.eye(n) >> 0] # Fiedler value constraint
+    
     # Objective function
-    cw = cvx.lambda_sum_smallest(W, 2)
-    cz = cvx.lambda_sum_smallest(Z, 2)
-    obj_fun = vw*cw + vz*cz 
+    obj_fun = vw*t + vz*s 
 
     # Solve
     obj = cvx.Maximize(obj_fun)
@@ -258,8 +275,8 @@ def getMaxConnectivity(n, vz=1.0, vw=1.0, **kwargs):
     if verbose:
         print("status:", prob.status)
         print("optimal value", prob.value)
-        print("optimal cw", cw.value)
-        print("optimal cz", cz.value)
+        print("optimal Fiedler value for W", t.value)
+        print("optimal Fiedler value for Z", s.value)
         print("optimal W")
         print(W.value)
         print("optimal Z")

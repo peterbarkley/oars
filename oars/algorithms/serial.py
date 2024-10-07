@@ -67,7 +67,7 @@ def serialAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdu
         diffs = [ 0 ]*n
         start_time = time()
     convergence = ConvergenceChecker(vartol, objtol, counter=n, objective=objective, data=data, x=all_x) 
-    verbose_itr = 1
+    itr_period = max(1, itrs//10)
     counter = checkperiod
     xresults = []
     vresults = []
@@ -88,16 +88,22 @@ def serialAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdu
         for i in range(n):     
             wx[i] = sum(W[i,j]*all_x[j] for j in range(n))       
             all_v[i] = all_v[i] - gamma*wx[i]
-            if verbose:
-                print("Change in w", i, ":", np.linalg.norm(gamma*wx[i]))
-        if verbose and itr % verbose_itr == 0:
-            for i in range(n):    
-                print("Difference across x", i, i-1, np.linalg.norm(all_x[i]-all_x[i-1]))
-            for i in range(n):
-                print('x', i, all_x[i])
-                print('v', i, all_v[i])
-            xresults.append(all_x.copy())
-            vresults.append(all_v.copy())
+        if verbose and itr % itr_period == 0:
+            timedelta = (time()-start_time)
+            delta = gamma*np.linalg.norm(wx)
+            xbar = sum(all_x)/n
+            sum_diff = sum(np.linalg.norm(all_x[i] - xbar)**2 for i in range(n))**0.5
+            u = getDuals(all_v, all_x, Z)
+            sum_zero_diff = np.linalg.norm(sum(u))
+            print(datetime.now(), 'Iteration', itr, 'time', timedelta, 'Delta v', delta, 'Sum diff', sum_diff, 'Sum zero diff', sum_zero_diff)
+            if debug:
+                for i in range(n):    
+                    print("Difference across x", i, i-1, ":", np.linalg.norm(all_x[i]-all_x[i-1]))
+                for i in range(n):
+                    print('x', i, all_x[i])
+                    print('v', i, all_v[i])
+                xresults.append(all_x.copy())
+                vresults.append(all_v.copy())
         if convergence.check(all_x, verbose=verbose):
             print('Converged in value, iteration', itr+1)
             break
@@ -113,9 +119,12 @@ def serialAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdu
             results.append({'x':all_x[i], 'v':all_v[i], 'log':resolvents[i].log})
         else:
             results.append({'x':all_x[i], 'v':all_v[i]})
-    if verbose:
-        print('results', 'x', all_x, 'v', all_v)
-        results.append({'xresults':xresults, 'vresults':vresults})
+    if debug:
+        print('results')
+        for i in range(n):
+            print(f'x {i}:', all_x[i])
+            print(f'v {i}:', all_v[i])
+    results.append({'xresults':xresults, 'vresults':vresults})
     return x, results
 
 
