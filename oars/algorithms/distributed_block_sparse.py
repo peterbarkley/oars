@@ -144,6 +144,7 @@ def worker(icomm):
     itr_period = itrs // 10
     check_period = itr_period
     t = time()
+    myrankshift = n//2 + myrank
     if myrank == 0 or myrank == n//2 - 1:
         print(datetime.now(), 'Worker', myrank, 'started', flush=True)
     for itr in range(itrs):
@@ -153,7 +154,7 @@ def worker(icomm):
         # comm.Allreduce([my_x, MPI.DOUBLE], [sum_x, MPI.DOUBLE], op=MPI.SUM)
         for comm, wt in my_left_deps:
             comm.Ireduce([my_x*wt, MPI.DOUBLE], [sum_x, MPI.DOUBLE], op=MPI.SUM)
-        req = my_left_comm.Ireduce([-my_x*Z[n+myrank, myrank], MPI.DOUBLE], [sum_x, MPI.DOUBLE], op=MPI.SUM)
+        req = my_left_comm.Ireduce([-my_x*Z[myrankshift, myrank], MPI.DOUBLE], [sum_x, MPI.DOUBLE], op=MPI.SUM)
         # Wait for req
         req.Wait()
 
@@ -162,7 +163,7 @@ def worker(icomm):
         # comm.Allreduce([my_y, MPI.DOUBLE], [sum_y, MPI.DOUBLE], op=MPI.SUM)
         for comm, wt in my_right_deps:
             comm.Ireduce([my_y*wt, MPI.DOUBLE], [sum_y, MPI.DOUBLE], op=MPI.SUM)
-        req = my_left_comm.Ireduce([-my_y*Z[myrank, n+myrank], MPI.DOUBLE], [sum_y, MPI.DOUBLE], op=MPI.SUM)
+        req = my_left_comm.Ireduce([-my_y*Z[myrank, myrankshift], MPI.DOUBLE], [sum_y, MPI.DOUBLE], op=MPI.SUM)
         update_1 = gamma*(2*my_y - sum_x)
         v[1] = v[1] - update_1
 
@@ -209,7 +210,7 @@ def worker(icomm):
     xbar = np.zeros(my_x.shape)
     comm.Reduce([my_y + my_x, MPI.DOUBLE], [xbar, MPI.DOUBLE], op=MPI.SUM)
     if myrank == 0:
-        xbar = xbar/(2*n)
+        xbar = xbar/n
         icomm.send(xbar, dest=0)
         icomm.send(results, dest=0)
     comm.Barrier()
