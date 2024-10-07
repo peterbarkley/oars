@@ -5,7 +5,7 @@ import numpy as np
 from time import time
 from datetime import datetime
 
-def distributed_block_solve(n, data, resolvents, warmstartprimal, warmstartdual=None, w_own=0, w_other=None, itrs=1001, gamma=0.9, alpha=1.0, vartol=1e-8, verbose=False):
+def distributed_block_solve(n, data, resolvents, warmstartprimal, warmstartdual=None, w_own=0, w_other=None, itrs=1001, gamma=0.9, alpha=1.0, vartol=1e-8, logging=False, verbose=False, debug=False):
     '''
     Solve the 2-Block resolvent splitting algorithm in parallel using MPI
 
@@ -56,7 +56,7 @@ def distributed_block_solve(n, data, resolvents, warmstartprimal, warmstartdual=
     else:
         w_other = np.array(w_other)
     
-    icomm.bcast((n, z, w_own, w_other, gamma, alpha, itrs, vartol), root=MPI.ROOT)
+    icomm.bcast((n, z, w_own, w_other, gamma, alpha, itrs, logging, vartol, debug), root=MPI.ROOT)
     
     for i in range(n//2):
         icomm.send((data[i], data[i+n//2], resolvents[i], resolvents[i+n//2], v0[i], v0[i+n//2]), dest=i)
@@ -95,7 +95,7 @@ def worker(icomm):
     comm = MPI.COMM_WORLD
 
     # Receive data from parent
-    n, z, w_own, w_other, gamma, alpha, itrs, vartol = icomm.bcast((), root=0)
+    n, z, w_own, w_other, gamma, alpha, itrs, logging, vartol, debug = icomm.bcast((), root=0)
     first_data, second_data, first_resolvent, second_resolvent, first_v0, second_v0 = icomm.recv(source=0)
 
     v = [first_v0, second_v0]
@@ -106,11 +106,13 @@ def worker(icomm):
     sum_y = np.zeros(shape)
     old_delta = np.array(-1.0)
     delta = np.array(0.0)
-    itr_period = itrs // 10
-    check_period = 1
+    itr_period = max(1, itrs // 10)
+    check_period = itr_period
     t = time()
     if myrank == 0 or myrank == n//2 - 1:
         print(datetime.now(), 'Worker', myrank, 'started', flush=True)
+    if debug:
+        debugvals = [[], [], [], [], [], []]
     for itr in range(itrs):
 
         # First block
@@ -126,8 +128,14 @@ def worker(icomm):
         update_1 = gamma*(2*my_y - w_other*sum_x - w_own*sum_y)
         v[0] = v[0] - update_0
         v[1] = v[1] - update_1
-
-        if itr % check_period == 0:
+        if debug:
+            debugvals[0].append(my_x)
+            debugvals[1].append(my_y)
+            debugvals[2].append(w_other*sum_x)
+            debugvals[3].append(w_other*sum_y)
+            debugvals[4].append(v[0])
+            debugvals[5].append(v[1])
+        if itr % itr_period == 0:
             v_sq = np.linalg.norm(update_0)**2 + np.linalg.norm(update_1)**2
             comm.Allreduce([v_sq, MPI.DOUBLE], [delta, MPI.DOUBLE], op=MPI.SUM)
             delta_rt = np.sqrt(delta)
@@ -154,7 +162,23 @@ def worker(icomm):
         log += res[0].log
         log += res[1].log
 
-    logs = comm.gather(log, root=0)
+    if logging:
+        import json
+        for i in [0, 1]:
+            log = res[i].log
+            idx = myrank + i*(n//2)
+            with open(str(idx) + '_dist_log.json', 'w') as f:
+                json.dump(log, f)
+    if debug:
+        for i, title in enumerate(['x', 'sum', 'v']):
+            for j in range(2):
+                idx = myrank + j*(n//2)
+                with open(str(idx) + '_dist_debug' + title + '.out', 'w') as f:
+                    # write ndarray in human readable format rounded to 4 decimals
+                    for val in debugvals[2*i+j]:
+                        f.write(str(np.round(val, 4)) + '\n')
+
+    results = comm.gather(result, root=0)
     if myrank == 0:
         xbar = (sum_x + sum_y)/n
         icomm.send(xbar, dest=0)
