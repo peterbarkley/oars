@@ -611,6 +611,73 @@ def getIncidence(W):
                 k += 1
     return M
 
+def getZfromGraph(A):
+    '''
+    Get the resolvent matrix Z from a graph adjacency matrix A
+
+    Args:
+        A (ndarray): n x n numpy array of graph adjacency matrix
+
+    Returns:
+        Z (ndarray): n x n numpy array of resolvent matrix
+
+    Examples:
+        >>> from oars.matrices import getZfromGraph
+        >>> A = np.array([[0, 1, 0, 1], [1, 0, 1, 0], [0, 1, 0, 1], [1, 0, 1, 0]])
+        >>> Z = getZfromGraph(A)
+        >>> print(Z)
+    '''
+    n = A.shape[0]
+
+    # Doubly stochastic matrix
+    Y = ipf(A.copy())
+
+    # Resolvent matrix
+    Z = 2*np.eye(n) - Y - Y.T
+
+    return Z
+
+
+
+def ipf(X, itrs=100, tol=1e-6, verbose=False):
+    '''
+    Iterative Proportional Fitting for forming doubly stochastic matrices
+
+    Args:
+        X (ndarray): n x n numpy array of nonnegative matrix
+        itrs (int): maximum number of iterations
+        tol (float): tolerance for convergence
+        verbose (bool): whether to print convergence information
+
+    Returns:
+        X (ndarray): n x n numpy array of doubly stochastic matrix
+
+    Examples:
+        >>> from oars.matrices import ipf
+        >>> import numpy as np
+        >>> X = np.array([[0, 1, 1, 1], 
+              [1, 0, 0, 1],
+              [1, 0, 0, 1],
+              [1, 1, 1, 0]], dtype=float)
+        >>> Y = ipf(X.copy())
+        >>> print(Y)
+        [[0.  0.5 0.5 0. ]
+         [0.5 0.  0.  0.5]
+         [0.5 0.  0.  0.5]
+         [0.  0.5 0.5 0. ]]
+    '''
+
+    rows, cols = X.shape
+    for i in range(itrs):
+        for r in range(rows):
+            X[r] = X[r] / float(np.sum(X[r]))
+        for c in range(cols):
+            X[:, c] = X[:, c] / float(np.sum(X[:, c]))
+        if np.allclose(np.sum(X, axis=1), np.ones(rows), atol=tol) and np.allclose(np.sum(X, axis=0), np.ones(cols), atol=tol):
+            break
+    if verbose:
+        print("IPF converged after {} iterations".format(i))
+    return X
 
 def testMatrices(Z, W):
     """Test that L and W are valid consensus and resolvent matrices"""
