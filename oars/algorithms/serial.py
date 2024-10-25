@@ -117,7 +117,7 @@ def serialAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdu
             results.append({'x':all_x[i], 'v':all_v[i], 'log':resolvents[i].log})
         else:
             results.append({'x':all_x[i], 'v':all_v[i]})
-    if verbose:
+    if debug:
         print('results')
         for i in range(n):
             print(f'x {i}:', all_x[i])
