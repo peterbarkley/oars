@@ -3,7 +3,7 @@ from oars.algorithms.helpers import ConvergenceChecker, getWarmPrimal, getDuals
 from time import time
 from datetime import datetime
 
-def serialAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdual=None, itrs=1001, gamma=0.9, alpha=1.0, vartol=None, objtol=None, objective=None, checkperiod=10, verbose=False, debug=False):
+def serialAlgorithmApprox(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdual=None, itrs=1001, gamma=0.9, alpha=1.0, vartol=None, objtol=None, objective=None, checkperiod=10, verbose=False, debug=False):
     """
     Run the frugal resolvent splitting algorithm defined by Z and W in serial
 
@@ -47,20 +47,41 @@ def serialAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdu
     """
     # Initialize the resolvents and variables
     all_x = []
+    num_approx = 0
     for i in range(n):
         resolvents[i] = resolvents[i](data[i])
+        if hasattr(resolvents[i], 'approx'):
+            num_approx += 1
         if i == 0:
             m = resolvents[0].shape
         x = np.zeros(m)
         all_x.append(x)
     if warmstartprimal is not None:
         all_v = getWarmPrimal(warmstartprimal, Z)
-        if debug:print('warmstartprimal', all_v)
+        # if debug:print('warmstartprimal', all_v)
     else:
         all_v = [np.zeros(m) for _ in range(n)]
     if warmstartdual is not None:
         all_v = [all_v[i] + warmstartdual[i] for i in range(n)]
-        if debug:print('warmstart final', all_v)
+        # if debug:print('warmstart final', all_v)
+
+    # Get non-zero elements of Z
+    Lgraph = np.tril(Z, k=-1)
+    for i in range(n):
+        count = 0
+        for j in range(i):
+            if not np.isclose(Lgraph[i,j], 0.0, atol=1e-5):
+                Lgraph[i,j] = 1.0
+                count += 1
+            else:
+                Lgraph[i,j] = 0.0
+        Lgraph[i,i] = count
+
+    # Get second smallest eigenvalue of Z
+    if num_approx > 0:
+        eigtwo = np.linalg.eigvalsh(Z)[1]
+        print('Second smallest eigenvalue of Z:', eigtwo)
+        budget_factor = eigtwo**2 / (n*4)
 
     # Run the algorithm
     if verbose:
@@ -77,7 +98,16 @@ def serialAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdu
         for i in range(n):
             resolvent = resolvents[i]
             y = all_v[i] - sum(Z[i,j]*all_x[j] for j in range(i))
-            x = resolvent.prox(y, alpha)
+            if hasattr(resolvent, 'approx'):
+                variance = 0
+                if Lgraph[i,i] != 0:
+                    xbar = sum(Lgraph[i,j]*all_x[j] for j in range(i))/Lgraph[i,i]
+                    variance = np.linalg.norm([all_x[j] - xbar for j in range(i) if Lgraph[i,j] != 0])**2
+                tol = variance * budget_factor
+                if debug: print('Res:', i, 'Tol:', tol)
+                x = resolvent.prox(y, alpha, tol)
+            else:
+                x = resolvent.prox(y, alpha)
             all_x[i] = x #resolvent.prox(y, alpha)
 
         for i in range(n):     
@@ -91,14 +121,14 @@ def serialAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdu
             u = getDuals(all_v, all_x, Z)
             sum_zero_diff = np.linalg.norm(sum(u))
             print(datetime.now(), 'Iteration', itr, 'time', timedelta, 'Delta v', delta, 'Sum diff', sum_diff, 'Sum zero diff', sum_zero_diff)
-            if debug:
-                for i in range(n):    
-                    print("Difference across x", i, i-1, ":", np.linalg.norm(all_x[i]-all_x[i-1]))
-                for i in range(n):
-                    print('x', i, all_x[i])
-                    print('v', i, all_v[i])
-                xresults.append(all_x.copy())
-                vresults.append(all_v.copy())
+            # if debug:
+            #     for i in range(n):    
+            #         print("Difference across x", i, i-1, ":", np.linalg.norm(all_x[i]-all_x[i-1]))
+            #     for i in range(n):
+            #         print('x', i, all_x[i])
+            #         print('v', i, all_v[i])
+            #     xresults.append(all_x.copy())
+            #     vresults.append(all_v.copy())
         if convergence.check(all_x, verbose=verbose):
             print('Converged in value, iteration', itr+1)
             break
@@ -114,10 +144,10 @@ def serialAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdu
             results.append({'x':all_x[i], 'v':all_v[i], 'log':resolvents[i].log})
         else:
             results.append({'x':all_x[i], 'v':all_v[i]})
-    if debug:
-        print('results')
-        for i in range(n):
-            print(f'x {i}:', all_x[i])
-            print(f'v {i}:', all_v[i])
-        results.append({'xresults':xresults, 'vresults':vresults})
+    # if debug:
+    #     print('results')
+    #     for i in range(n):
+    #         print(f'x {i}:', all_x[i])
+    #         print(f'v {i}:', all_v[i])
+    #     results.append({'xresults':xresults, 'vresults':vresults})
     return x, results

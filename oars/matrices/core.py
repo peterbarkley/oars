@@ -679,6 +679,44 @@ def ipf(X, itrs=100, tol=1e-6, verbose=False):
         print("IPF converged after {} iterations".format(i))
     return X
 
+def ipf_sparse(X, itrs=100, tol=1e-6, verbose=False):
+    '''
+    Iterative Proportional Fitting for forming doubly stochastic matrices
+    using a sparse matrix representation in CSC format
+
+    Args:
+        X (csc_matrix): n x n scipy sparse array of nonnegative matrix
+        itrs (int): maximum number of iterations
+        tol (float): tolerance for convergence
+        verbose (bool): whether to print convergence information
+
+    Returns:
+        X (csc_matrix): n x n scipy sparse array of doubly stochastic matrix
+    '''
+
+    rows, cols = X.shape
+    for i in range(itrs):
+        rowsum = X.sum(axis=1)
+        for r in range(rows):
+            X[r, :] = X[r, :] / float(rowsum[r])
+            # X[r] = X[r] / float(np.sum(X[r]))
+            # Numpy_csc_norm(X.data, X.indptr)
+        colsum = X.sum(axis=0)
+        for c in range(cols):
+            X[:, c] = X[:, c] / colsum[0, c]
+        if np.allclose(np.sum(X, axis=1), np.ones(rows), atol=tol) and np.allclose(np.sum(X, axis=0), np.ones(cols), atol=tol):
+            break
+    if verbose:
+        print("IPF converged after {} iterations".format(i))
+    return X
+
+
+def Numpy_csc_norm(data,indptr):
+    for i in range(indptr.shape[0]-1):
+        xs = np.sum(data[indptr[i]:indptr[i+1]])
+        #Modify the view in place
+        data[indptr[i]:indptr[i+1]]/=xs    
+
 def testMatrices(Z, W):
     """Test that L and W are valid consensus and resolvent matrices"""
     n = Z.shape[0]

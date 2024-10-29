@@ -1,4 +1,5 @@
 from .serial import serialAlgorithm
+from .serial_approx import serialAlgorithmApprox
 from .parallel import parallelAlgorithm
 from .distributed import distributedAlgorithm
 from .helpers import ConvergenceChecker, getWarmPrimal, getWarmDual
@@ -8,6 +9,7 @@ from .distributed_block_restart import distributed_block_solve_restart
 from .distributed_block_sparse import distributed_block_sparse_solve
 
 __all__ = ['serial', 'serialAlgorithm',
+           'serial_approx', 'serialAlgorithmApprox',
            'parallel', 'parallelAlgorithm',
            'distributed', 'distributedAlgorithm',
            'helpers', 'ConvergenceChecker',
