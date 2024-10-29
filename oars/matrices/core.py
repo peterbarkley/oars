@@ -611,7 +611,7 @@ def getIncidence(W):
                 k += 1
     return M
 
-def getZfromGraph(A):
+def getZfromGraph(A, **kwargs):
     '''
     Get the resolvent matrix Z from a graph adjacency matrix A
 
@@ -630,7 +630,7 @@ def getZfromGraph(A):
     n = A.shape[0]
 
     # Doubly stochastic matrix
-    Y = ipf(A.copy())
+    Y = ipf(A.copy(), **kwargs)
 
     # Resolvent matrix
     Z = 2*np.eye(n) - Y - Y.T
