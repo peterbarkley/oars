@@ -10,7 +10,7 @@ To install oars with the packages required to run all of the examples, run the f
 .. code-block:: bash
 
     git clone https://github.com/peterbarkley/oars.git
-    pip install .[all]
+    pip install .[paper]
 
 Demo
 
