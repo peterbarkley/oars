@@ -77,8 +77,7 @@ def serialAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdu
         for i in range(n):
             resolvent = resolvents[i]
             y = all_v[i] - sum(Z[i,j]*all_x[j] for j in range(i))
-            x = resolvent.prox(y, alpha)
-            all_x[i] = x #resolvent.prox(y, alpha)
+            all_x[i] = resolvent.prox(y, alpha)
 
         for i in range(n):     
             wx[i] = sum(W[i,j]*all_x[j] for j in range(n))       
