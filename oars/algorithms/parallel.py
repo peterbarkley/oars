@@ -185,7 +185,7 @@ def subproblem(i, data, problem_builder, v0, W, L, comms_data, queue, gamma=0.5,
                 break
                 #terminate.value = itr + 1
             itrs = terminate.value
-        if itr % itr_period == 0:
+        if verbose and itr % itr_period == 0:
             print(f'Node {i} iteration {itr}')
 
         # Get data from upstream L queue
@@ -267,8 +267,9 @@ def evaluate(n, terminateQueue, terminate, vartol, itrs, checkperiod=1, verbose=
         prev_v = v.copy()
         for i in range(n):
             v[i] = terminateQueue[i].get()
-        delta = sum(np.linalg.norm(v[i]) for i in range(n))
-        if verbose:print("vartol check delta", delta)
+        delta = sum(np.linalg.norm(v[i]) for i in range(n)**2)**0.5
+        if verbose:
+            print(datetime.now(), 'Iteration', itr, 'Delta v', delta, flush=True)
         if delta < vartol:
             varcounter += 1
             if varcounter >= n:
