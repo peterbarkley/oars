@@ -3,7 +3,7 @@ from oars.algorithms.helpers import ConvergenceChecker, getWarmPrimal, getDuals
 from time import time
 from datetime import datetime
 
-def serialAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdual=None, itrs=1001, gamma=0.9, alpha=1.0, vartol=None, objtol=None, objective=None, checkperiod=10, verbose=False, debug=False):
+def serialAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdual=None, itrs=1001, gamma=0.9, alpha=1.0, vartol=None, objtol=None, objective=None, checkperiod=None, verbose=False, debug=False):
     """
     Run the frugal resolvent splitting algorithm defined by Z and W in serial
 
@@ -68,8 +68,11 @@ def serialAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdu
         diffs = [ 0 ]*n
         start_time = time()
     convergence = ConvergenceChecker(vartol, objtol, counter=n, objective=objective, data=data, x=all_x) 
-    itr_period = max(itrs//10,1)
-    counter = checkperiod
+    if checkperiod is None: checkperiod = max(itrs//10,1)
+    if debug: 
+        alglog = [[] for _ in range(n)]
+        oldx = [np.zeros(m) for _ in range(n)]
+    # counter = checkperiod
     xresults = []
     vresults = []
     wx = [np.zeros(m) for _ in range(n)]
@@ -82,7 +85,7 @@ def serialAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdu
         for i in range(n):     
             wx[i] = sum(W[i,j]*all_x[j] for j in range(n))       
             all_v[i] = all_v[i] - gamma*wx[i]
-        if verbose and itr % itr_period == 0:
+        if verbose and itr % checkperiod == 0:
             timedelta = (time()-start_time)
             delta = gamma*np.linalg.norm(wx)
             xbar = sum(all_x)/n
@@ -90,14 +93,14 @@ def serialAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdu
             u = getDuals(all_v, all_x, Z)
             sum_zero_diff = np.linalg.norm(sum(u))
             print(datetime.now(), 'Iteration', itr, 'time', timedelta, 'Delta v', delta, 'Sum diff', sum_diff, 'Sum zero diff', sum_zero_diff)
-            if debug:
-                for i in range(n):    
+        if debug:
+            for i in range(n):    
+                if verbose:
                     print("Difference across x", i, i-1, ":", np.linalg.norm(all_x[i]-all_x[i-1]))
-                for i in range(n):
                     print('x', i, all_x[i])
                     print('v', i, all_v[i])
-                xresults.append(all_x.copy())
-                vresults.append(all_v.copy())
+                alglog[i].append((np.linalg.norm(oldx[i]-all_x[i]), np.linalg.norm(wx[i])))
+
         if convergence.check(all_x, verbose=verbose):
             print('Converged in value, iteration', itr+1)
             break
@@ -109,14 +112,11 @@ def serialAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdu
     # Build results list
     results = []
     for i in range(n):
+        resultdict = {'x':all_x[i], 'v':all_v[i]}
         if hasattr(resolvents[i], 'log'):
-            results.append({'x':all_x[i], 'v':all_v[i], 'log':resolvents[i].log})
-        else:
-            results.append({'x':all_x[i], 'v':all_v[i]})
-    if debug:
-        print('results')
-        for i in range(n):
-            print(f'x {i}:', all_x[i])
-            print(f'v {i}:', all_v[i])
-        results.append({'xresults':xresults, 'vresults':vresults})
+            resultdict['log'] = resolvents[i].log
+        if debug:
+            resultdict['alglog'] = alglog[i]
+        results.append(resultdict)
+
     return x, results
