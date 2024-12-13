@@ -3,7 +3,7 @@ from oars.algorithms.helpers import ConvergenceChecker, getWarmPrimal, getDuals
 from time import time
 from datetime import datetime
 
-def serialAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdual=None, itrs=1001, gamma=0.9, alpha=1.0, vartol=None, objtol=None, objective=None, checkperiod=None, verbose=False, debug=False):
+def serialAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdual=None, itrs=1001, gamma=0.9, alpha=1.0, vartol=None, objtol=None, objective=None, checkperiod=None, verbose=False, debug=False, callback=None):
     """
     Run the frugal resolvent splitting algorithm defined by Z and W in serial
 
@@ -55,19 +55,21 @@ def serialAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdu
         all_x.append(x)
     if warmstartprimal is not None:
         all_v = getWarmPrimal(warmstartprimal, Z)
-        if debug:print('warmstartprimal', all_v)
+        if debug and verbose:print('warmstartprimal', all_v)
     else:
         all_v = [np.zeros(m) for _ in range(n)]
     if warmstartdual is not None:
         all_v = [all_v[i] + warmstartdual[i] for i in range(n)]
-        if debug:print('warmstart final', all_v)
+        if debug and verbose:print('warmstart final', all_v)
 
     # Run the algorithm
     if verbose:
         print('Starting Serial Algorithm')
         diffs = [ 0 ]*n
         start_time = time()
-    convergence = ConvergenceChecker(vartol, objtol, counter=n, objective=objective, data=data, x=all_x) 
+    if callback == None:
+        callback = ConvergenceChecker(vartol, objtol, counter=n, objective=objective, data=data, x=all_x).check 
+
     if checkperiod is None: checkperiod = max(itrs//10,1)
     if debug: 
         alglog = [[] for _ in range(n)]
@@ -100,8 +102,9 @@ def serialAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdu
                     print('x', i, all_x[i])
                     print('v', i, all_v[i])
                 alglog[i].append((np.linalg.norm(oldx[i]-all_x[i]), np.linalg.norm(wx[i])))
+                oldx[i] = all_x[i].copy()
 
-        if convergence.check(all_x, verbose=verbose):
+        if callback(all_x, verbose=verbose):
             print('Converged in value, iteration', itr+1)
             break
         
