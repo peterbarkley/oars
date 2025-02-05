@@ -271,3 +271,9 @@ class quadprox():
     def prox(self, y, tau=1.0):
         return (y+tau*self.data)/(1+tau)
 
+class nullprox():
+    def __init(self, data):
+        self.shape = data.shape
+
+    def prox(self, y, tau=1.0):
+        return y
