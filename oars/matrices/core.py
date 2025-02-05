@@ -630,7 +630,7 @@ def getZfromGraph(A, **kwargs):
     n = A.shape[0]
 
     # Doubly stochastic matrix
-    Y = ipf(A.copy(), **kwargs)
+    Y = ipf(A, **kwargs)
 
     # Resolvent matrix
     Z = 2*np.eye(n) - Y - Y.T
@@ -639,12 +639,12 @@ def getZfromGraph(A, **kwargs):
 
 
 
-def ipf(X, itrs=100, tol=1e-6, verbose=False):
+def ipf(A, itrs=100, tol=1e-6, verbose=False):
     '''
     Iterative Proportional Fitting for forming doubly stochastic matrices
 
     Args:
-        X (ndarray): n x n numpy array of nonnegative matrix
+        A (ndarray): n x n numpy array of nonnegative matrix
         itrs (int): maximum number of iterations
         tol (float): tolerance for convergence
         verbose (bool): whether to print convergence information
@@ -666,13 +666,13 @@ def ipf(X, itrs=100, tol=1e-6, verbose=False):
          [0.5 0.  0.  0.5]
          [0.  0.5 0.5 0. ]]
     '''
-
+    X = A.astype(float)
     rows, cols = X.shape
     for i in range(itrs):
         for r in range(rows):
-            X[r] = X[r] / float(np.sum(X[r]))
+            X[r] = X[r] / np.sum(X[r])
         for c in range(cols):
-            X[:, c] = X[:, c] / float(np.sum(X[:, c]))
+            X[:, c] = X[:, c] / np.sum(X[:, c])
         if np.allclose(np.sum(X, axis=1), np.ones(rows), atol=tol) and np.allclose(np.sum(X, axis=0), np.ones(cols), atol=tol):
             break
     if verbose:

@@ -339,6 +339,9 @@ class quadprox(baseProx):
 class nullprox():
     def __init(self, data):
         self.shape = data.shape
+class nullprox():
+    def __init(self, data):
+        self.shape = data.shape
 
     def prox(self, y, tau=1.0):
         return y
