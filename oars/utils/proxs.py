@@ -12,10 +12,11 @@ def _log(func):
         start = time()
         Y = func(self, *args, **kwargs)
         end = time()
-        self.log.append((start, end))
+        self.log.append((start, end, Y))
         return Y
 
     return wrapper
+
 class baseProx():
     '''
     Base class for proximal operators
