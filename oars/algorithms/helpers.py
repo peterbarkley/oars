@@ -68,8 +68,20 @@ class ConvergenceChecker():
 
 # Splitting Algorithm Execution Functions
 def getWarmPrimal(x, Z):
-    P = np.sum(np.tril(Z, -1), axis=1) + 1
-    return [i*x for i in P]
+    '''
+    Return an n x m ndarray of the primal warmstart input to v^0
+
+    Args:
+        x (ndarray): m ndarray of the estimated solution
+        Z (ndarray): n x n ndarray of algorithm weights
+
+    Returns:
+        (ndarray): n x m ndarray of 1^T(I-L) otimes x
+    '''
+    IL = np.sum(np.tril(Z, -1), axis=1) + 1
+    return np.array([wt*x for wt in IL])
+    # P = np.sum(np.tril(Z, -1), axis=1) + 1
+    # return [i*x for i in P]
 
 def getWarmDual(d):
     '''Returns the initial point v^0 in H^n
