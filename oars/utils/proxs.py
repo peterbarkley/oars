@@ -337,8 +337,10 @@ class quadprox(baseProx):
         return (y+tau*self.data)/(1+tau)
     
 class nullprox():
-    def __init(self, data):
+    def __init__(self, data):
         self.shape = data.shape
+        self.logging = True
+        self.log = []
 
     @_log
     def prox(self, y, tau=1.0):
