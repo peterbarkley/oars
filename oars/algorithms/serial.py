@@ -66,10 +66,13 @@ def serialAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdu
     for itr in range(itrs):
         if callback is not None and callback(itr, all_x, all_v): break
         for i in range(n):
-            y = all_v[i] - np.einsum('i,ijk->jk', Z[i,:i], all_x[:i,:,:])
+            if i == 0:
+                y = all_v[0]
+            else:
+                y = all_v[i] - np.einsum('i,i...->...', Z[i,:i], all_x[:i])
             all_x[i] = resolvents[i].prox(y, alpha)
 
-        all_v -= np.einsum('li,ijk->ljk', gammaW, all_x)
+        all_v -= np.einsum('nl,l...->n...', gammaW, all_x)
 
         if verbose and itr % checkperiod == 0:
             print(datetime.now(), itr, np.linalg.norm(all_x - np.mean(all_x, axis=0)), np.linalg.norm(all_v))
