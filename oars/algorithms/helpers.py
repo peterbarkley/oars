@@ -78,7 +78,7 @@ def getWarmPrimal(x, Z):
     Returns:
         (ndarray): n x m ndarray of 1^T(I-L) otimes x
     '''
-    IL = np.sum(np.tril(Z, -1), axis=1) + 1
+    IL = getIL(Z)
     return np.array([wt*x for wt in IL])
     # P = np.sum(np.tril(Z, -1), axis=1) + 1
     # return [i*x for i in P]
@@ -113,4 +113,25 @@ def getDuals(v, x, Z):
         list: list of dual values
     """
     n = len(v)
-    return [v[i] - sum(Z[i,j]*x[j] for j in range(i)) - x[i] for i in range(n)]
+    return np.array([v[i] - sum(Z[i,j]*x[j] for j in range(i)) - x[i] for i in range(n)])
+
+def getDualsMean(v, xbar, Z):
+    """
+    Get the dual values for the splitting algorithm
+    using the formula :math:`u = v + (L-I)x`
+    where :math:`L` is the lower triangular part of the -Z matrix
+
+    Args:
+        v (list): list of iterate values
+        xbar (list): primal value
+        Z (ndarray): Z matrix
+
+    Returns:
+        list: list of dual values
+    """
+    n = len(v)
+    IL = getIL(Z)
+    return np.array([v[i] - IL[i]*xbar for i in range(n)])
+
+def getIL(Z):
+    return np.sum(np.tril(Z, -1), axis=1) + 1

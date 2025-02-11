@@ -1,8 +1,8 @@
 # Algorithm Design Functions
 import numpy as np
-from oars.matrices import getMT
+from oars.matrices import getMT, getFull, getTwoBlockSimilar
 
-def solve(n, data, resolvents, W, Z, parallel=False, **kwargs):
+def solve(n, data, resolvents, W=None, Z=None, parallel=False, **kwargs):
     '''
     
     Solve the problem with a given W and Z matrix
@@ -44,9 +44,13 @@ def solve(n, data, resolvents, W, Z, parallel=False, **kwargs):
     if parallel:
         from oars.algorithms.parallel import parallelAlgorithm
         alg = parallelAlgorithm
+        if Z == None or W == None:
+            Z, W = getTwoBlockSimilar(n)
     else:
         from oars.algorithms.serial import serialAlgorithm
         alg = serialAlgorithm
+        if Z == None or W == None:
+            Z, W = getFull(n)
         
     x, results = alg(n, data, resolvents, W, Z, **kwargs)
     return x, results

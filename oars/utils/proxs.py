@@ -12,7 +12,7 @@ def _log(func):
         start = time()
         Y = func(self, *args, **kwargs)
         end = time()
-        self.log.append((start, end, Y))
+        self.log.append((start, end) + tuple(Y))
         return Y
 
     return wrapper
@@ -97,10 +97,10 @@ class traceInequalityIndicator(baseProx):
         self.A = data['A']
         self.v = data['v']
         self.shape = self.A.shape
-        self.scale()
+        self.scale(self.A)
         super().__init__()
 
-    def scale(self):
+    def scale(self, A):
         """
         Scale the matrix A by the squared Frobenius norm
         """    
