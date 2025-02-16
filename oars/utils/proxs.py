@@ -88,6 +88,11 @@ class traceEqualityIndicator(baseProx):
         return Y
 
 
+def solve_2x2(cross, rhs, det):
+    x = np.array([(rhs[0] - cross * rhs[1]) / det,
+                  (-cross * rhs[0] + rhs[1]) / det])
+    return x  
+    
 class traceInequalityIndicator(baseProx):
     """
     Class for the trace proximal operator
@@ -118,7 +123,75 @@ class traceInequalityIndicator(baseProx):
             return X
         
         return X - (ax-self.v)*self.U
-    
+
+
+class traceInequalityIndicatorDouble(baseProx):
+    """
+    Class for the trace proximal operator over two constraints
+
+
+    """
+
+    def __init__(self, data):
+        '''
+        Args:
+            data (dict): containing
+                A (list): length 2 containing matrices
+                v (list): length 2 containing rhs scalars
+        '''
+        self.A = data['A']
+        self.v = data['v']
+        self.shape = self.A[0].shape
+        self.scale(self.A, self.v)
+        self.cross = np.sum(self.Us[0] * self.Us[1])
+        self.det = 1 - self.cross**2
+        self.AX = np.zeros(len(self.A))
+        self.satisfied = [False, False]
+        super().__init__()
+
+    def scale(self, A, v):
+        """
+        Scale the matrix A by the squared Frobenius norm
+        """    
+        self.A_norms = []
+        self.Us = []
+        self.rhs = np.zeros(len(self.A))
+        for i in range(2):
+            t = np.linalg.norm(A[i])
+            self.A_norms.append(t**2)
+            self.Us.append(A[i]/t)
+            self.rhs[i] = v[i]/t
+
+
+    @_log
+    def prox(self, X, t=1):
+        """
+        Compute the proximal operator of the trace norm
+        """
+        all_sat = True
+        for i, Ui in enumerate(self.Us):
+            self.AX[i] = np.sum(Ui * X)
+        
+            if self.AX[i] >= self.rhs[i]:
+                self.satisfied[i] = True
+            else:
+                self.satisfied[i] = False
+                all_sat = False
+        
+        if all_sat:
+            return X
+        if self.satisfied[1]:
+            l0 = self.AX[0] - self.rhs[0]
+            if self.cross*l0 <= self.AX[1] - self.rhs[1]:
+                return X - l0*self.Us[0]
+        elif self.satisfied[0]:
+            l1 = self.AX[1] - self.rhs[1]
+            if self.cross*l1 <= self.AX[0] - self.rhs[0]:
+                return X - l1*self.Us[1]
+
+        lambdas = solve_2x2(self.cross, self.AX - self.rhs, self.det)
+        return X - sum(li*Ui for li, Ui in zip(lambdas, self.Us))
+  
 class traceHalfspaceIndicator(baseProx):
     """
     Class for the trace proximal operator
@@ -330,7 +403,10 @@ class absprox(baseProx):
 class quadprox(baseProx):
     def __init__(self, data):
         self.data = data
-        self.shape = data.shape
+        if hasattr(data, 'shape'):
+            self.shape = data.shape
+        else:
+            self.shape = (1,)
         super().__init__()
     
     @_log

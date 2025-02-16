@@ -1,5 +1,5 @@
 import numpy as np
-from oars.algorithms.helpers import getWarmPrimal, getDualsMean
+from oars.algorithms.helpers import getWarmPrimal, getDualsMean, getDuals
 from time import time
 from datetime import datetime
 
@@ -61,7 +61,7 @@ def serialAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdu
 
     # Run the algorithm
     if verbose: 
-        print('date time itr ||x-bar(x)|| ||dual|| ||v||')
+        print('date time itr ||x-bar(x)|| ||sum dual at xbar|| ||sum dual at x|| ||v||')
         checkperiod = max(itrs//10,1)
     for itr in range(itrs):
         for i in range(n):
@@ -75,8 +75,9 @@ def serialAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdu
 
         if verbose and itr % checkperiod == 0:
             xbar = np.mean(all_x, axis=0)
-            ynorm = np.linalg.norm(getDualsMean(all_v, xbar, Z))
-            print(datetime.now(), itr, np.linalg.norm(all_x - xbar), ynorm, np.linalg.norm(all_v))
+            ynorm = np.linalg.norm(sum(getDualsMean(all_v, xbar, Z)))
+            dualsum = np.linalg.norm(sum(getDuals(all_v, all_x, Z)))
+            print(datetime.now(), itr, np.linalg.norm(all_x - xbar), ynorm, dualsum, np.linalg.norm(all_v))
 
         all_v -= np.einsum('nl,l...->n...', gammaW, all_x)
 
