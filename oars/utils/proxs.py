@@ -366,6 +366,7 @@ class linearSubdiff(baseProx):
     def __init__(self, A):
         self.A = A
         self.shape = A.shape
+        self.itr = 0
         super().__init__()
 
     @_log
@@ -374,6 +375,9 @@ class linearSubdiff(baseProx):
         Compute the proximal operator of the linear subdifferential
         """
         Y = X - t*self.A
+        if self.itr%1000 == 0:
+            print(np.sum(Y*self.A), flush=True)
+        self.itr += 1
 
         return Y
 
