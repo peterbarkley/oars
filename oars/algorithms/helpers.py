@@ -135,3 +135,17 @@ def getDualsMean(v, xbar, Z):
 
 def getIL(Z):
     return np.sum(np.tril(Z, -1), axis=1) + 1
+
+def getGammaLimit(eta):
+    a = 2*(eta-1)**2
+    return 0.5*a/(a + 3*eta-1)
+
+def cb(itr, all_x, all_v, xtol=1e-6, dualtol=1e-6):
+    xbar = np.mean(all_x, axis=0)
+    xdev = np.linalg.norm(all_x - xbar)
+    dualsum = np.linalg.norm(sum(getDuals(all_v, all_x, Z)))
+    if xdev <= xtol and dualsum <= dualtol:
+        print("Converged at iteration", itr)
+        return True
+
+    return False

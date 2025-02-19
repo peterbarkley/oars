@@ -3,7 +3,7 @@ import multiprocessing as mp
 from oars.algorithms.helpers import ConvergenceChecker, getWarmPrimal
 from time import time
 
-def parallelAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdual=None, itrs=1001, gamma=0.9, alpha=1.0, vartol=None,  checkperiod=1, verbose=False):
+def parallelAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdual=None, itrs=1001, gamma=0.9, alpha=1.0, vartol=None, checkperiod=1, verbose=False):
     """Run the frugal resolvent splitting algorithm for W and Z matrices in parallel
 
     Args:
@@ -18,8 +18,6 @@ def parallelAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstart
         gamma (float, optional): parameter in :math:`v^{k+1} = v^k - \\gamma W x^k`
         alpha (float, optional): the resolvent step size in :math:`x^{k+1} = J_{\\alpha F^i}(y^k)`
         vartol (float, optional): is the variable tolerance
-        earlyterm (int, optional): the number of variables that must agree to terminate early and solve explicitly for the remaining variables
-        detectcycle (int, optional): the number of iterations to check for cycling
         verbose (bool, optional): True for verbose output
 
     Returns:
@@ -167,7 +165,7 @@ def subproblem(i, data, problem_builder, v0, W, L, comms_data, queue, gamma=0.5,
     '''
 
     # Create the problem
-    resolvent = problem_builder(data)
+    resolvent = problem_builder(**data)
     m = resolvent.shape
     v_temp = np.zeros(m)
     local_v = v0 # + np.zeros(m)

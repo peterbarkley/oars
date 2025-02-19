@@ -1,6 +1,5 @@
 import numpy as np
 from oars.algorithms.helpers import getWarmPrimal, getDualsMean, getDuals
-from time import time
 from datetime import datetime
 
 
@@ -31,22 +30,22 @@ def serialAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdu
         >>> from oars.algorithms import serialAlgorithm
         >>> from oars.matrices import getFull
         >>> import numpy as np
-        >>> vals = np.array([0, 1, 3, 40])
+        >>> vals = [0, 1, 3, 40]
+        >>> data = [{'data':val} for val in vals]
         >>> n = len(vals)
         >>> proxs = [quadprox]*n
         >>> Z, W = getFull(n)
-        >>> x, results = serialAlgorithm(n, vals, proxs, W, Z, itrs=1000, vartol=1e-6, gamma=1.0)
-        Converged in objective value, iteration 13
+        >>> x, results = serialAlgorithm(n, data, proxs, W, Z, itrs=20, gamma=1.0, verbose=True)
         >>> x
-        10.999999999990674
+        [11.]
         >>> results
-        [{'x': 10.999999999906539, 'v': 22.00000000003744}, {'x': 11.000000000103075, 'v': 13.66666666663539}, {'x': 10.999999999962412, 'v': 4.333333333327117}, {'x': 10.999999999990674, 'v': -40.0}]
+        [{'x': array([11.]), 'v': array([22.]), 'log': []}, {'x': array([11.]), 'v': array([13.66666667]), 'log': []}, {'x': array([11.]), 'v': array([4.33333333]), 'log': []}, {'x': array([11.]), 'v': array([-40.]), 'log': []}]
 
     """
     
     # Initialize the resolvents and variables
     for i in range(n):
-        resolvents[i] = resolvents[i](data[i])
+        resolvents[i] = resolvents[i](**data[i])
         if i == 0:
             m = resolvents[0].shape
             all_x = np.zeros((n,) + m)
@@ -61,7 +60,7 @@ def serialAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdu
 
     # Run the algorithm
     if verbose: 
-        print('date time itr ||x-bar(x)|| ||sum dual at xbar|| ||sum dual at x|| ||v||')
+        print('date\t\ttime\t\titr\t||x-bar(x)||\t||sum dual at x||')
         checkperiod = max(itrs//10,1)
     for itr in range(itrs):
         for i in range(n):
@@ -75,9 +74,8 @@ def serialAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdu
 
         if verbose and itr % checkperiod == 0:
             xbar = np.mean(all_x, axis=0)
-            ynorm = np.linalg.norm(sum(getDualsMean(all_v, xbar, Z)))
             dualsum = np.linalg.norm(sum(getDuals(all_v, all_x, Z)))
-            print(datetime.now(), itr, np.linalg.norm(all_x - xbar), ynorm, dualsum, np.linalg.norm(all_v))
+            print(f"{datetime.now()}\t{itr}\t{np.linalg.norm(all_x - xbar):.3e}\t{dualsum:.3e}")
 
         all_v -= np.einsum('nl,l...->n...', gammaW, all_x)
 

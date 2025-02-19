@@ -34,7 +34,7 @@ class baseProx():
         self.log = []
 
     @_log
-    def prox(self, X, t=1):
+    def prox(self, X, t=None, tol=None):
         return X
     
 class nullProx(baseProx):
@@ -47,7 +47,7 @@ class nullProx(baseProx):
         super().__init__()
 
     @_log
-    def prox(self, X, t=1):
+    def prox(self, X, t=None, tol=None):
         """
         Compute the proximal operator of the null operator
         """
@@ -164,7 +164,7 @@ class traceInequalityIndicatorDouble(baseProx):
 
 
     @_log
-    def prox(self, X, t=1):
+    def prox(self, X, t=1, tol=None):
         """
         Compute the proximal operator of the trace norm
         """
@@ -210,7 +210,7 @@ class traceHalfspaceIndicator(baseProx):
         return A/np.linalg.norm(A)**2
 
     @_log
-    def prox(self, X, t=1):
+    def prox(self, X, t=None, tol=None):
         """
         Compute the proximal operator of the trace norm
         """
@@ -232,7 +232,7 @@ class psdCone(baseProx):
         super().__init__()
 
     @_log
-    def prox(self, X, t=1):
+    def prox(self, X, t=None, tol=None):
         """
         Compute the proximal operator of the PSD cone
         """
@@ -324,21 +324,22 @@ class psdConeApprox(baseProx):
         return Y
 
     @_log
-    def prox(self, X, t=1):
+    def prox(self, X, t=None, tol=None):
         
-        Y = self.project(X)
+        Y = self.project(X, tol)
         return Y
 
-    def project(self, X):
+    def project(self, X, tol):
         """
         Compute the proximal operator of the PSD cone
         """
-        
+        if tol is None:
+            tol = self.get_tolerance()
         self.iteration += 1
         converged = False
         if (self.U.shape[1] < self.max_subspace_dim) and (self.iteration > 1):
             try:
-                eig, vec = lobpcg(X, self.U, largest=self.is_subspace_positive, tol=self.get_tolerance(), maxiter=self.max_iter)
+                eig, vec = lobpcg(X, self.U, largest=self.is_subspace_positive, tol=tol, maxiter=self.max_iter)
                 self.lobpcg_iterations += 1 # could add retResidualHistory and add len(retResidualHistory) to the iterations
                 # test for at least 1 eigenvalue of opposite sign
                 self.U = vec
@@ -395,9 +396,9 @@ class absprox(baseProx):
 
     # Evaluates L1 norm resolvent
     @_log
-    def prox(self, y, tau=1.0):
+    def prox(self, y, tau=1.0, tol=None):
         u = y - self.data
-        r = max(abs(u)-tau, 0)*np.sign(u) + self.data
+        r = np.maximum(np.abs(u)-tau, 0)*np.sign(u) + self.data
         # print(f"Data: {self.data}, y: {y}, u: {u}, r: {r}", flush=True)
         return r
 
@@ -414,9 +415,67 @@ class quadprox(baseProx):
         super().__init__()
     
     @_log
-    def prox(self, y, tau=1.0):
+    def prox(self, y, tau=1.0, tol=None):
         return (y+tau*self.data)/(1+tau)
+
+def conjgrad(A, b, x, tol=1e-8):
+    """
+    A function to solve [A]{x} = {b} linear equation system with the 
+    conjugate gradient method.
+    Credit: https://gist.github.com/glederrey/7fe6e03bbc85c81ed60f3585eea2e073 
+    More at: http://en.wikipedia.org/wiki/Conjugate_gradient_method
+    ========== Parameters ==========
+    A : matrix 
+        A real symmetric positive definite matrix.
+    b : vector
+        The right hand side (RHS) vector of the system.
+    x : vector
+        The starting guess for the solution.
+    """  
+    r = b - np.dot(A, x)
+    p = r
+    rsold = np.dot(np.transpose(r), r)
     
+    for i in range(len(b)):
+        Ap = np.dot(A, p)
+        alpha = rsold / np.dot(np.transpose(p), Ap)
+        x = x + np.dot(alpha, p)
+        r = r - np.dot(alpha, Ap)
+        rsnew = np.dot(np.transpose(r), r)
+        if np.sqrt(rsnew) < tol:
+            print(i, end=' ')
+            break
+        p = r + (rsnew/rsold)*p
+        rsold = rsnew
+    return x
+
+class leastSquareConjprox(baseProx):
+    '''
+    Solve the problem min_x ||Ax-b||_2^2 + tau/2*||x-y||_2^2
+    for a given A, b, and y
+    '''
+    def __init__(self, A, b, tau=1.0):
+        self.A = A
+        self.b = b
+        self.tau = tau
+        if hasattr(A, 'shape'):
+            self.n = A.shape[1]
+            self.shape = (self.n,)
+        else:
+            self.shape = (1,)
+        self.AAI = A.T@A + tau*np.eye(self.n)
+        self.Ab = A.T@b
+        self.x = np.zeros(self.n)
+        super().__init__()
+    
+    @_log
+    def prox(self, y, tau=1.0, tol=1e-8):
+        if tau != self.tau:
+            self.tau = tau
+            self.AAI = A.T@A + tau*np.eye(self.n)
+        self.x = conjgrad(self.AAI, self.Ab + y, self.x, tol=tol)
+        return self.x
+        
 class nullprox():
     def __init__(self, data):
         self.shape = data.shape
