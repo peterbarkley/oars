@@ -44,12 +44,12 @@ def solve(n, data, resolvents, W=None, Z=None, parallel=False, **kwargs):
     if parallel:
         from oars.algorithms.parallel import parallelAlgorithm
         alg = parallelAlgorithm
-        if Z == None or W == None:
+        if Z is None or W is None:
             Z, W = getTwoBlockSimilar(n)
     else:
         from oars.algorithms.serial import serialAlgorithm
         alg = serialAlgorithm
-        if Z == None or W == None:
+        if Z is None or W is None:
             Z, W = getFull(n)
         
     x, results = alg(n, data, resolvents, W, Z, **kwargs)
