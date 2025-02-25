@@ -46,9 +46,9 @@ def distributed_block_sparse_solve(n, data, resolvents, warmstartprimal, warmsta
 
     # Set v0
     shape = warmstartprimal.shape
-    v0 = [warmstartprimal]*(n//2) + [-warmstartprimal]*(n//2)
-    if warmstartdual is not None:
-        v0 = [v0[i] + warmstartdual[i] for i in range(n)]
+    # v0 = [warmstartprimal.copy() for _ in range(n//2)] + [-warmstartprimal.copy()]*(n//2)
+    # if warmstartdual is not None:
+    #     v0 = [v0[i] + warmstartdual[i] for i in range(n)]
 
     # Send data to workers
     if Z is None:
@@ -60,7 +60,13 @@ def distributed_block_sparse_solve(n, data, resolvents, warmstartprimal, warmsta
     icomm.bcast((n, Z, W, gamma, alpha, itrs, logging, vartol), root=MPI.ROOT)
     
     for i in range(n//2):
-        icomm.send((data[i], data[i+n//2], resolvents[i], resolvents[i+n//2], v0[i], v0[i+n//2]), dest=i)
+        v00 = warmstartprimal.copy()
+        if warmstartdual is not None:
+            v00 = v00 + warmstartdual[i]
+        v01 = -warmstartprimal.copy()
+        if warmstartdual is not None:
+            v01 = v01 + warmstartdual[i+n//2]
+        icomm.send((data[i], data[i+n//2], resolvents[i], resolvents[i+n//2], v00, v01), dest=i)
 
     if verbose:print(datetime.now(), 'Data sent to workers', flush=True)
         
@@ -103,7 +109,7 @@ def buildComms(icomm, myrank, Z, W, zerotol=1e-4):
             if r != c and not np.isclose(Z[n+r][c],0.0, atol=zerotol):
                 Ni[r].append(c)
                 Nj[c].append(r)
-
+    # print(myrank, Ni, Nj)
     igroups = [icomm.group.Incl([i] + Ni[i]) for i in range(n)]
     jgroups = [icomm.group.Incl([i] + Nj[i]) for i in range(n)]
 
@@ -114,6 +120,8 @@ def buildComms(icomm, myrank, Z, W, zerotol=1e-4):
     myleftdeps = [(leftcomms[j], -Z[n+j, myrank]) for j in Nj[myrank]]
     # myrightdeps = rightcomms[Ni[myrank]]
     myrightdeps = [(rightcomms[j], -Z[j, myrank+n]) for j in Ni[myrank]]
+    # print('build debug' , myrank, list([j] + Ni[j] for j in Nj[myrank]))
+    # print('build debug' , myrank, list([j] + Nj[j] for j in Ni[myrank]))
 
     return leftcomms[myrank], rightcomms[myrank], myleftdeps, myrightdeps
 
@@ -122,13 +130,13 @@ def worker(icomm):
     myrank = icomm.Get_rank()
 
     # Build intracommunicator
-    comm = MPI.COMM_WORLD
+    intracomm = MPI.COMM_WORLD
 
     # Receive data from parent
     n, Z, W, gamma, alpha, itrs, logging, vartol = icomm.bcast((), root=0)
     first_data, second_data, first_resolvent, second_resolvent, first_v0, second_v0 = icomm.recv(source=0)
 
-    my_left_comm, my_right_comm, my_left_deps, my_right_deps = buildComms(comm, myrank, Z, W)
+    my_left_comm, my_right_comm, my_left_deps, my_right_deps = buildComms(intracomm, myrank, Z, W)
 
     v = [first_v0, second_v0]
 
@@ -155,27 +163,30 @@ def worker(icomm):
         for comm, wt in my_left_deps:
             comm.Ireduce([my_x*wt, MPI.DOUBLE], [sum_x, MPI.DOUBLE], op=MPI.SUM)
         req = my_left_comm.Ireduce([-my_x*Z[myrankshift, myrank], MPI.DOUBLE], [sum_x, MPI.DOUBLE], op=MPI.SUM)
+        # print('Rank', myrank, 'Iteration', itr, 'First block', my_x, flush=True)
         # Wait for req
         req.Wait()
+        # print('Rank', myrank, 'through wait', flush=True)
 
         # Second block
-        my_y = res[1].prox(v[1]+z*sum_x, alpha)
+        my_y = res[1].prox(v[1]+sum_x, alpha)
         # comm.Allreduce([my_y, MPI.DOUBLE], [sum_y, MPI.DOUBLE], op=MPI.SUM)
         for comm, wt in my_right_deps:
             comm.Ireduce([my_y*wt, MPI.DOUBLE], [sum_y, MPI.DOUBLE], op=MPI.SUM)
-        req = my_left_comm.Ireduce([-my_y*Z[myrank, myrankshift], MPI.DOUBLE], [sum_y, MPI.DOUBLE], op=MPI.SUM)
+        req = my_right_comm.Ireduce([-my_y*Z[myrank, myrankshift], MPI.DOUBLE], [sum_y, MPI.DOUBLE], op=MPI.SUM)
         update_1 = gamma*(2*my_y - sum_x)
         v[1] = v[1] - update_1
-
+        # print('Rank', myrank, 'Iteration', itr, 'Second block', my_y, flush=True)
         # Wait for sum_y
         req.Wait()
-
+        # print('Rank', myrank, 'through wait2', flush=True)
         update_0 = gamma*(2*my_x - sum_y)
         v[0] = v[0] - update_0
         
 
-        # if itr % itr_period == 0:
-        #     v_sq = np.linalg.norm(update_0)**2 + np.linalg.norm(update_1)**2
+        if myrank == 0 and itr % itr_period == 0:
+            v_sq = np.linalg.norm(update_0)**2 + np.linalg.norm(update_1)**2
+            print(datetime.now(), 'Rank', myrank, 'Iteration', itr, 'Delta v', v_sq**0.5, flush=True)
         #     comm.Allreduce([v_sq, MPI.DOUBLE], [delta, MPI.DOUBLE], op=MPI.SUM)
         #     delta_rt = np.sqrt(delta)
         #     # change = max(np.abs(delta_rt - old_delta), vartol, 1e-8)
@@ -206,21 +217,22 @@ def worker(icomm):
             with open(str(idx) + '_dist_log.json', 'w') as f:
                 json.dump(log, f)
 
-    results = comm.gather(result, root=0)
+    results = intracomm.gather(result, root=0)
     xbar = np.zeros(my_x.shape)
-    comm.Reduce([my_y + my_x, MPI.DOUBLE], [xbar, MPI.DOUBLE], op=MPI.SUM)
+    intracomm.Reduce([my_y + my_x, MPI.DOUBLE], [xbar, MPI.DOUBLE], op=MPI.SUM)
     if myrank == 0:
         xbar = xbar/n
         icomm.send(xbar, dest=0)
         icomm.send(results, dest=0)
-    comm.Barrier()
-    for comm in my_left_deps:
-        comm.Disconnect()
-    for comm in my_right_deps:
-        comm.Disconnect()
-    my_left_comm.Disconnect()
-    my_right_comm.Disconnect()
-    comm.Disconnect()
+    # comm.Barrier()
+    # for comm, _ in my_left_deps:
+    #     comm.Disconnect()
+    # for comm, _ in my_right_deps:
+    #     comm.Disconnect()
+    # my_left_comm.Disconnect()
+    # my_right_comm.Disconnect()
+    # intracomm.Disconnect()
+    # print(datetime.now(), 'Worker', myrank, 'disconnected', flush=True)
 
 if __name__ == '__main__':
     if 'child' in sys.argv:
