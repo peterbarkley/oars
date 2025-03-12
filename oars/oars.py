@@ -52,8 +52,7 @@ def solve(n, data, resolvents, W=None, Z=None, parallel=False, **kwargs):
         if Z is None or W is None:
             Z, W = getFull(n)
         
-    x, results = alg(n, data, resolvents, W, Z, **kwargs)
-    return x, results
+    return alg(n, data, resolvents, W, Z, **kwargs)
 
 def solveMT(n, data, resolvents, **kwargs):
     '''
