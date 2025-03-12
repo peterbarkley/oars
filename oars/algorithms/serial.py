@@ -82,12 +82,12 @@ def serialAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdu
         
     x = np.mean(all_x, axis=0)
     
-    # Build results list
-    results = []
+    # Build logs list
+    logs = []
     for i in range(n):
-        resultdict = {'x':all_x[i], 'v':all_v[i]}
         if hasattr(resolvents[i], 'log'):
-            resultdict['log'] = resolvents[i].log
-        results.append(resultdict)
+            logs.append(resolvents[i].log)
+        else:
+            logs.append([])
 
-    return x, results
+    return x, logs, all_x, all_v
