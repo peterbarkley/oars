@@ -1,16 +1,21 @@
-from numpy import zeros, ones, eye
+from numpy import zeros, ones, eye, block
 
-def getMT(n):
+def getMT(n, m=0):
     '''
     Get Malitsky-Tam values for Z and W
 
     Args:
         n (int): number of resolvents
+        m (int): number of gradients (must have m < n)
         
     Returns:
         Z (ndarray): Z matrix n x n numpy array
         W (ndarray): W matrix n x n numpy array
+        U (ndarray): U matrix n x n numpy array (if m > 0)
+        P (ndarray): P matrix n x m numpy array (if m > 0)
+        K (ndarray): K matrix m x n numpy array (if m > 0)
     '''
+    assert(m < n)
     W = zeros((n,n))
     W[0,0] = 1
     W[0,1] = -1
@@ -27,33 +32,56 @@ def getMT(n):
     Z[0,0] += 1
     Z[n-1,n-1] += 1
     
-    return Z, W
+    if m == 0:
+        return Z, W
 
-def getFull(n):
+    K = block([eye(m), zeros((n-m,m))])
+    P = block([zeros((n-m,m)), eye(m)]).T
+    U = (P - K.T)@(P.T - K)
+    return Z,W,U,P,K
+
+def getFull(n, m=0):
     '''
     Return Z, W for a fully connected graph with n nodes
     and weight 2 evenly distributed among all edges
 
     Args:
         n (int): number of resolvents
+        m (int): number of gradients (must have m < n)
 
     Returns:
         Z (ndarray): n x n numpy array for the graph Laplacian of a fully connected weighted graph with n nodes
                      where the weights are evenly distributed among all edges and the weighted degree of each node is 2 
         W (ndarray): n x n numpy array which is the same as Z
+        U (ndarray): U matrix n x n numpy array (if m > 0)
+        P (ndarray): P matrix n x m numpy array (if m > 0)
+        K (ndarray): K matrix m x n numpy array (if m > 0)
     '''
+    assert(m < n)
     
     v = 2/(n-1)
     W = -v*ones((n,n))
+
     # Set diagonal of W to 2
     for i in range(n):
         W[i,i] = 2
     
     Z = W.copy()
 
-    return Z, W
+    if m == 0:
+        return Z, W
 
+    s = 1/m
+    K = block([s*ones((m,m)), zeros((m,n-m))])
+    P = block([zeros((m,n-m)), s*eye(m)]).T
+    U = (P - K.T)@(P.T - K)
+    return Z,W,U,P,K
 
+def getFullCabra(n, m):
+    """
+    Return matrix parameters Z, W, U, Q, K for the connected graph
+    """
+    
 def getRyu(n):
     '''
     Get Tam's extension of the Ryu algorithm 

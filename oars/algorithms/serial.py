@@ -14,7 +14,7 @@ def serialAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdu
         W (ndarray): size (n, n) ndarray for the :math:`W` matrix
         Z (ndarray): size (n, n) ndarray for the :math:`Z` matrix
         warmstartprimal (ndarray, optional): resolvent.shape ndarray for :math:`x` in v^0
-        warmstartdual (ndarray, optional): n x resolvent.shape ndarray for :math:`u` which sums to 0 in v^0
+        warmstartdual (ndarray, optional): n x resolvent.shape ndarray for dual values :math:`u` which sums to 0 in v^0
         itrs (int, optional): the number of iterations
         gamma (float, optional): parameter in :math:`v^{k+1} = v^k - \\gamma W x^k`
         alpha (float, optional): the resolvent step size in :math:`x^{k+1} = J_{\\alpha F^i}(y^k)`
@@ -23,7 +23,9 @@ def serialAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdu
 
     Returns:
         x (ndarray): resolvent.shape ndarray of the mean over the node solutions at termination
-        results (list): list of dictionaries with the results for each resolvent
+        logs (list): list of n logs for the operators
+        all_x (ndarray): n x resolvent.shape ndarray of the node solution
+        all_v (ndarray): n x resolvent.shape ndarray of the consensus iterates at solution
 
     Examples:
         >>> from oars.utils.proxs import quadprox

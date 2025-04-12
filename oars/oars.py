@@ -1,6 +1,6 @@
 # Algorithm Design Functions
-import numpy as np
-from oars.matrices import getMT, getFull, getTwoBlockSimilar
+# import numpy as np
+from oars.matrices.prebuilt import getMT, getFull, getTwoBlockSimilar
 
 def solve(n, data, resolvents, W=None, Z=None, parallel=False, **kwargs):
     '''
