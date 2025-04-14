@@ -19,4 +19,5 @@ __all__ = ['serial', 'serialAlgorithm',
            'distributed_block_restart', 'distributed_block_solve_restart', 'distributed_three_block', 'distributed_three_block_solve',
            'distributed_block_sparse', 'distributed_block_sparse_solve',
            'inertialAlgorithm', 'inertialErrorAlgorithm',
-           'cabra', 'cabraAlgorithm']
+           'cabra', 'cabraAlgorithm', 'getDA',
+           'abra', 'abraAlgorithm']

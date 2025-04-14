@@ -1,6 +1,7 @@
 import numpy as np
 from time import time
 import warnings
+from scipy.linalg import cho_factor, cho_solve
 warnings.filterwarnings("error")
 
 
@@ -405,18 +406,51 @@ class absprox(baseProx):
     def __repr__(self):
         return "L1 norm resolvent"
         
-class quadprox(baseProx):
-    def __init__(self, data):
-        self.data = data
-        if hasattr(data, 'shape'):
-            self.shape = data.shape
-        else:
-            self.shape = (1,)
-        super().__init__()
+# class quadprox(baseProx):
+#     def __init__(self, data):
+#         self.data = data
+#         if hasattr(data, 'shape'):
+#             self.shape = data.shape
+#         else:
+#             self.shape = (1,)
+#         super().__init__()
     
-    @_log
-    def prox(self, y, tau=1.0, tol=None):
-        return (y+tau*self.data)/(1+tau)
+#     @_log
+#     def prox(self, y, tau=1.0, tol=None):
+#         return (y+tau*self.data)/(1+tau)
+class quadGrad():
+    """
+    grad of the function f(x) = 0.5 x^T Q x - P x
+    """
+    def __init__(self, Q, P):
+        self.Q = Q
+        self.P = P
+        self.shape = P.shape
+
+    def grad(self, y):
+        return self.Q@y - self.P
+
+class quadProx():
+    """
+    prox of the function f(x) = 0.5 x^T Q x - P x
+    """
+    
+    def __init__(self, Q, P, alpha=1.0):
+        self.Q = Q
+        self.P = P
+        self.aP = alpha*P
+        self.alpha = alpha
+        self.cho = cho_factor(np.eye(len(P)) + alpha*Q)
+        self.shape = P.shape
+
+    def prox(self, y, alpha=1.0):
+        if alpha != self.alpha:
+            self.alpha = alpha
+            self.cho = cho_factor(np.eye(len(self.P)) + alpha*self.Q)
+            self.aP = alpha*self.P
+        
+        return cho_solve(self.cho, y+self.aP)
+
 
 def conjgrad(A, b, x, tol=1e-8):
     """
@@ -475,7 +509,34 @@ class leastSquareConjprox(baseProx):
             self.AAI = A.T@A + tau*np.eye(self.n)
         self.x = conjgrad(self.AAI, self.Ab + y, self.x, tol=tol)
         return self.x
-        
+
+class posProj():
+    """
+    Project onto the non-negative cone
+    """
+    def __init__(self, shape=(2,)):
+        self.shape = shape
+
+    def prox(self, y, alpha=1.0):
+        return np.maximum(y, 0)
+            
+class halfspaceProj():
+    """
+    Project onto the halfspace defined by
+    c^T x >= v
+    """
+    def __init__(self, c=-np.ones(2), v=-1, shape=(2,)):
+        self.shape = shape
+        self.c = c
+        self.u = c/np.linalg.norm(c)**2
+        self.v = v
+
+    def prox(self, y, alpha=1.0):
+        t = self.c @ y - self.v
+        if t < 0.0:
+            return y - t*self.u
+        return y
+
 class nullprox():
     def __init__(self, data):
         self.shape = data.shape
