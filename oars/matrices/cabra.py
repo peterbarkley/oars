@@ -75,7 +75,7 @@ def getCabra(n, m, fixed_Z={}, fixed_W={}, fixed_Q={}, fixed_K={}, cutoffs=None,
 
     # Constraints
     cons += [Z >> W, # Z - W is PSD            
-            cvx.bmat([[W, Q-K.T],
+            cvx.bmat([[Z, Q-K.T],
                       [Q.T-K, eye(m)]]) >> 0,
             cvx.sum(K, axis=1) == 1,
             cvx.sum(Q, axis=0) == 1]

@@ -130,7 +130,7 @@ def getDA(n, Z, PA):
     for k, pk in enumerate(PA):
         for idx, i in enumerate(pk):
             DA[i].append(Z[k][idx, idx])
-
+    DA = [np.diag(D) for D in DA]
     return DA
 
 def cabraAlgorithm(A, B, W, Z, K, Q, PA, PB, data, varshapes, warmstartprimal=None, warmstartdual=None, itrs=1001, gamma=0.9, alpha=1.0, verbose=False, callback=None):
