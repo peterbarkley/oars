@@ -77,7 +77,7 @@ def getFeedersQ(A, Q, PA, PB):
         for k in A[i].vars:
             idx = PA[k].index(i)
             fdr[i][k] = []
-            if len(Q[k]) > 0:
+            if Q is not None and len(Q[k]) > 0:
                 for qdx, wt in enumerate(Q[k][idx]):
                     if not np.isclose(wt, 0.0):
                         fdr[i][k].append((PB[k][qdx], wt))
@@ -116,6 +116,29 @@ def getFeedersL(n, Z, P):
 
     return fdr
 
+def getPA(A, p=None):
+    """
+    Use the variables assigned to each operator to build the 
+    set of operators assigned to each variable
+
+    Args:
+        A (list): list of :math:`n` operators with a vars attribute giving the ordered variable for each operator
+
+    Returns:
+        PA (list): list of :math:`p` lists with the ordered operators for each variable 
+    """
+    n = len(A)
+    if p is None:
+        p = 0
+        for Ai in A:
+            p = max(p, max(Ai.vars))
+        p += 1
+    PA = [[] for _ in range(p)]
+    for i in range(n):
+        for k in A[i].vars:
+            PA[k].append(i)
+
+    return PA
 
 def getDA(n, Z, PA):
     """
@@ -133,21 +156,18 @@ def getDA(n, Z, PA):
     DA = [np.diag(D) for D in DA]
     return DA
 
-def cabraAlgorithm(A, B, W, Z, K, Q, PA, PB, data, varshapes, warmstartprimal=None, warmstartdual=None, itrs=1001, gamma=0.9, alpha=1.0, verbose=False, callback=None):
+def cabraAlgorithm(data, A, B, W, Z, K=None, Q=None, warmstartprimal=None, warmstartdual=None, itrs=1001, gamma=0.9, alpha=1.0, verbose=False, callback=None):
     """
     Run the coupled adaptive backward-forward-backward resolvent splitting algorithm in serial
 
     Args:
+        data (list): list of lists where data[0] has a list of :math:`n` initialization dictionaries for A, and data[1] contains the :math:`m` initialization dictionaries for B
         A (list): list of :math:`n` initializable maximal monotone operators callable via a prox function 
         B (list): list of :math:`m` initializable cocoercive operators callable via a grad function
         W (list): list of :math:`p` between-iteration consensus ndarrays
         Z (list): list of :math:`p` within-iteration coordination ndarrays
-        K (list): list of :math:`p` within-iteration A->B coordination ndarrays
-        Q (list): list of :math:`p` within-iteration B->A coordination ndarrays
-        PA (list): list of :math:`p` lists where PA[k] has an ordered list of operators in A using variable k
-        PB (list): list of :math:`p` lists where PB[k] has an ordered list of operators in B using variable k
-        data (list): list of lists where data[0] has a list of :math:`n` initialization dictionaries for A, and data[1] contains the :math:`m` initialization dictionaries for B
-        varshapes (list): list of :math:`p` tuples containing the shape of the ndarrays for the variables
+        K (list): list of :math:`p` within-iteration A->B coordination ndarrays, optional
+        Q (list): list of :math:`p` within-iteration B->A coordination ndarrays, optional
         warmstartprimal (ndarray, optional): resolvent.shape ndarray for :math:`x` in v^0, or length :math:`p` list of such
         warmstartdual (ndarray, optional): n_k x resolvent.shape ndarray for :math:`u` which sums to 0 in v_k^0, or length :math:`p` list of such
         itrs (int, optional): the number of iterations
@@ -167,7 +187,7 @@ def cabraAlgorithm(A, B, W, Z, K, Q, PA, PB, data, varshapes, warmstartprimal=No
     # Initialize the operators
     n = len(A)
     m = len(B)
-    p = len(PA)
+    p = len(Z)
     for i in range(n):
         A[i] = A[i](**data[0][i])
 
@@ -189,31 +209,17 @@ def cabraAlgorithm(A, B, W, Z, K, Q, PA, PB, data, varshapes, warmstartprimal=No
     gammaW = [gamma*Wk for Wk in W]
 
     # Get feeders and weights
+    PA = getPA(A)
+    PB = getPA(B, p)
     fdr = getFeedersL(n, Z, PA)
-
-    # print('Lfeeders')
-    # for i in range(n):
-    #     print(i, fdr[i])
     Q_fdr = getFeedersQ(A, Q, PA, PB)
-    print('qfeeders')
-    for i in range(n):
-        print(i, Q_fdr[i])
     K_fdr = getFeedersK(B, K, PA, PB)
-    print('Kfeeders')
-    for j in range(m):
-        print(j, K_fdr[j])
 
     # Get B calculation order
     Bready = getBorder(A, B, K, PA, PB)
-    print('Bready')
-    for i in range(n):
-        print(i, Bready[i])
 
     # Get D_A
     DA = getDA(n, Z, PA)
-    # print('DA')
-    # for i in range(n):
-    #     print(i, DA[i])
 
     # Run the algorithm
     if verbose: 
@@ -235,10 +241,10 @@ def cabraAlgorithm(A, B, W, Z, K, Q, PA, PB, data, varshapes, warmstartprimal=No
                     b_input_k = sum(all_x[j][k]*wt for j,wt in K_fdr[j][k])
                     all_b[j][k] = b_input_k
                 
-                print('before', i, j, all_b[j])
+                # print('before', i, j, all_b[j])
                 B[j].grad(all_b[j])
                 
-                print('after', i, j, all_b[j])
+                # print('after', i, j, all_b[j])
                 for k in B[j].vars:
                     all_b[j][k] *= alpha
             

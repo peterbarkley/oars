@@ -54,9 +54,12 @@ def getCabra(n, m, fixed_Z={}, fixed_W={}, fixed_Q={}, fixed_K={}, cutoffs=None,
     cons = []
 
     # Variables
-    
-    Q = cvx.Variable((n,m))
-    K = cvx.Variable((m,n))
+    if m > 0:
+        Q = cvx.Variable((n,m))
+        K = cvx.Variable((m,n))
+    else:
+        Q = None
+        K = None
     if not adj:
         W = cvx.Variable((n,n), symmetric=True)
         Z = cvx.Variable((n,n), symmetric=True)
@@ -74,24 +77,24 @@ def getCabra(n, m, fixed_Z={}, fixed_W={}, fixed_Q={}, fixed_K={}, cutoffs=None,
         W = Mw.T @ cvx.diag(w) @ Mw
 
     # Constraints
-    cons += [Z >> W, # Z - W is PSD            
-            cvx.bmat([[Z, Q-K.T],
-                      [Q.T-K, eye(m)]]) >> 0,
-            cvx.sum(K, axis=1) == 1,
-            cvx.sum(Q, axis=0) == 1]
-    cons += [K[j,i] == 0 for j in range(m) for i in range(cutoffs[j], n)]
-    cons += [Q[i,j] == 0 for j in range(m) for i in range(cutoffs[j])]
-    # cons += [K[i,j] == 0 for i in range(m) for j in range(max(0,n-(m-i)),n)]
-    # cons += [Q[i,j] == 0 for i in range(min(m,n)) for j in range(i,m)]
+    if m > 0:
+        cons += [cvx.bmat([[Z, Q-K.T],
+                        [Q.T-K, eye(m)]]) >> 0,
+                cvx.sum(K, axis=1) == 1,
+                cvx.sum(Q, axis=0) == 1]
+        cons += [K[j,i] == 0 for j in range(m) for i in range(cutoffs[j], n)]
+        cons += [Q[i,j] == 0 for j in range(m) for i in range(cutoffs[j])]
+        cons += [Q[idx] == val for idx,val in fixed_Q.items()]
+        cons += [K[idx] == val for idx,val in fixed_K.items()]
 
     # Set fixed Z and W values
     if not adj:
         cons += [Z[idx] == val for idx,val in fixed_Z.items()]
         cons += [W[idx] == val for idx,val in fixed_W.items()]
 
-    cons += [Q[idx] == val for idx,val in fixed_Q.items()]
-    cons += [K[idx] == val for idx,val in fixed_K.items()]
-    cons += [W + n**2 * ones((n, n)) >> c*eye(n)] # Fiedler value constraint #cvx.trace(Z) <= n**2,
+    
+    cons += [Z >> W, # Z - W is PSD      
+             W + n**2 * ones((n, n)) >> c*eye(n)] # Fiedler value constraint #cvx.trace(Z) <= n**2,
 
     return Z, W, Q, K, cons    
 
