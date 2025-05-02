@@ -2,8 +2,7 @@ from numpy import isclose, zeros, mean, tril, einsum
 from numpy.linalg import norm
 from datetime import datetime
 
-def getBafter(K):
-    m, n = K.shape
+def getBafter(K, n, m):
     bafter = [[] for _ in range(n)]
     for j in range(m):
         i = n-1
@@ -63,7 +62,7 @@ def abraAlgorithm(A, B, K, Q, W, Z, data, warmstartprimal=None, warmstartdual=No
     #     all_v += warmstartdual
 
     gammaW = gamma*W
-    bafter = getBafter(K)
+    bafter = getBafter(K, n, m)
     L = -2.0*tril(Z, -1)
 
     # Run the algorithm
@@ -80,8 +79,8 @@ def abraAlgorithm(A, B, K, Q, W, Z, data, warmstartprimal=None, warmstartdual=No
             # print('y', i, y)
             all_x[i] = A[i].prox(y/Z[i, i], alpha/Z[i, i])
             for j in bafter[i]:
-                y = einsum('j,i...->...', K[j,:i+1], all_x[:i+1])
-                # y = sum(K[j, d]*all_x[d] for d in range(i+1))
+                # y = einsum('j,i...->...', K[j,:i+1], all_x[:i+1])
+                y = sum(K[j, d]*all_x[d] for d in range(i+1))
                 # print('b', i, j, y)
                 all_b[j] = B[j].grad(y)
             

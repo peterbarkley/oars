@@ -525,8 +525,8 @@ class halfspaceProj():
     Project onto the halfspace defined by
     c^T x >= v
     """
-    def __init__(self, c=-np.ones(2), v=-1, shape=(2,)):
-        self.shape = shape
+    def __init__(self, c=-np.ones(2), v=-1):
+        self.shape = c.shape
         self.c = c
         self.u = c/np.linalg.norm(c)**2
         self.v = v

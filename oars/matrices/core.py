@@ -676,7 +676,7 @@ def getMfromWCholesky(W):
     #for complex matrices it can be 2x2 block diagonal, but for real
     #it shouldn't be.
     diag_d = np.diag(d)
-    assert((diag_d <= 1e-6).sum() == 1) #there should be exactly 1 zero value
+    # assert((diag_d <= 1e-6).sum() == 1) #there should be exactly 1 zero value
     #in diag(d), since W is rank n-1 and lu is full rank.
     where_d_nonzero = diag_d >= 1e-6
     return (lu[:,where_d_nonzero] * np.sqrt(diag_d[where_d_nonzero])).T

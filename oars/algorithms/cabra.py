@@ -46,7 +46,7 @@ def getFeedersK(B, K, PA, PB):
     and (K_k)_{ji} gives the weight in K_k for ji
     """
     m = len(B)
-    fdr = [{} for j in range(m)]
+    fdr = [{} for _ in range(m)]
     for j in range(m):
         for k in B[j].vars:
             jdx = PB[k].index(j)
@@ -77,7 +77,7 @@ def getFeedersQ(A, Q, PA, PB):
         for k in A[i].vars:
             idx = PA[k].index(i)
             fdr[i][k] = []
-            if Q is not None and len(Q[k]) > 0:
+            if Q is not None and len(Q) > 0 and Q[k] is not None and len(Q[k]) > 0:
                 for qdx, wt in enumerate(Q[k][idx]):
                     if not np.isclose(wt, 0.0):
                         fdr[i][k].append((PB[k][qdx], wt))
@@ -116,7 +116,7 @@ def getFeedersL(n, Z, P):
 
     return fdr
 
-def getPA(A, p=None):
+def getPA(Avars, p=None):
     """
     Use the variables assigned to each operator to build the 
     set of operators assigned to each variable
@@ -127,22 +127,23 @@ def getPA(A, p=None):
     Returns:
         PA (list): list of :math:`p` lists with the ordered operators for each variable 
     """
-    n = len(A)
+    n = len(Avars)
     if p is None:
         p = 0
-        for Ai in A:
-            p = max(p, max(Ai.vars))
+        for i in range(n):
+            p = max(p, max(Avars[i]))
         p += 1
     PA = [[] for _ in range(p)]
     for i in range(n):
-        for k in A[i].vars:
+        for k in Avars[i]:
             PA[k].append(i)
 
     return PA
 
-def getDA(n, Z, PA):
+def permute(n, Z, PA):
     """
-    Returns a list with the ordered list of diagonal elements for each A operator
+    Returns a permuted list of lists taking the diagonals of the p entries in Z and returning them as a 
+    list of n diagonal matrices where PA[k] gives the ordered list of the matrices in n which use entry k
 
     Args:
         n (int): number of A operators
@@ -209,8 +210,8 @@ def cabraAlgorithm(data, A, B, W, Z, K=None, Q=None, warmstartprimal=None, warms
     gammaW = [gamma*Wk for Wk in W]
 
     # Get feeders and weights
-    PA = getPA(A)
-    PB = getPA(B, p)
+    PA = getPA([Ai.vars for Ai in A], p)
+    PB = getPA([Bj.vars for Bj in B], p)
     fdr = getFeedersL(n, Z, PA)
     Q_fdr = getFeedersQ(A, Q, PA, PB)
     K_fdr = getFeedersK(B, K, PA, PB)
@@ -219,7 +220,7 @@ def cabraAlgorithm(data, A, B, W, Z, K=None, Q=None, warmstartprimal=None, warms
     Bready = getBorder(A, B, K, PA, PB)
 
     # Get D_A
-    DA = getDA(n, Z, PA)
+    DA = permute(n, Z, PA)
 
     # Run the algorithm
     if verbose: 
@@ -251,11 +252,11 @@ def cabraAlgorithm(data, A, B, W, Z, K=None, Q=None, warmstartprimal=None, warms
         if callback is not None and callback(itr, all_x, all_v, all_b): break
 
         if verbose and itr % checkperiod == 0:
-            ybar = [np.mean([all_x[i][k] for i in PA[k]]) for k in range(p)]
-            ysqdiff = [sum((all_x[i][k] - ybar[k])**2 for i in PA[k]) for k in range(p)]
+            ybar = [np.mean([all_x[i][k] for i in PA[k]], axis=0) for k in range(p)]
+            ysqdiff = sum(sum(np.linalg.norm(all_x[i][k] - ybar[k])**2 for i in PA[k]) for k in range(p))
             # dualsum = np.linalg.norm(sum(getDualsCabra(all_v, all_x, all_b, Z)))
             dualsum = 0.0
-            print(f"{datetime.now()}\t{itr}\t{sum(ysqdiff)[0]:.3e}\t{dualsum:.3e}")
+            print(f"{datetime.now()}\t{itr}\t{ysqdiff:.3e}\t{dualsum:.3e}")
 
         for i in range(n):
             for k in A[i].vars:
@@ -263,7 +264,7 @@ def cabraAlgorithm(data, A, B, W, Z, K=None, Q=None, warmstartprimal=None, warms
                 all_v[i][k] -= sum(gammaW[k][idx, jdx]*all_x[j][k] for jdx, j in enumerate(PA[k]))
 
         
-    ybar = [np.mean([all_x[i][k] for i in PA[k]]) for k in range(p)]
+    ybar = [np.mean([all_x[i][k] for i in PA[k]], axis=0) for k in range(p)]
     
     # Build logs list
     logs = []
