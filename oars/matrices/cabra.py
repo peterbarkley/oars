@@ -140,6 +140,29 @@ def getCabraMinZ(n, m, beta=None, verbose=False, solverargs={}, **kwargs):
             print('U', U)
     return Z.value, W.value, Qv, Kv, U
 
+def getCabraMinZCloseW(n, m, t=1.0, beta=None, verbose=False, solverargs={}, **kwargs):
+    if beta is None:
+        beta = ones(m)
+    Z, W, Q, K, cons = getCabra(n, m, beta=beta, **kwargs)
+    obj = cvx.Minimize(t*cvx.lambda_max(Z) - cvx.lambda_sum_smallest(W,2))
+    prob = cvx.Problem(obj, cons)
+    prob.solve(verbose=(verbose==2), **solverargs)
+    
+    if m > 0:
+        Qv = Q.value
+        Kv = K.value
+        U = getU(Qv, Kv, beta)
+    else:
+        U = Qv = Kv = None
+    if verbose > 0:
+        print('Z', Z.value)
+        print('W', W.value)
+        if m > 0:
+            print('Q', Qv)
+            print('K', Kv)
+            print('U', U)
+    return Z.value, W.value, Qv, Kv, U
+
 def getCabraMinZD(n, m, D=None, alpha=None, beta=None, verbose=False, solverargs={}, **kwargs):
     
     if beta is None:

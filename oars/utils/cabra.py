@@ -110,6 +110,7 @@ class cbLog:
         self.xdata = [[] for _ in range(n)]  # Dictionary to store x values by iteration
         self.vdata = [[] for _ in range(n)]  # Dictionary to store x values by iteration
         self.bdata = [[] for _ in range(m)]  # Dictionary to store x values by iteration
+        self.m = m
         self.verbose = verbose
         
     def __call__(self, itr, x, v, b):
@@ -126,12 +127,14 @@ class cbLog:
             varlogi.append(xi.copy())
         for varlogi, vi in zip(self.vdata, v):
             varlogi.append(vi.copy())
-        for varlogi, bi in zip(self.bdata, b):
-            varlogi.append(bi.copy())
+        if self.m != 0:
+            for varlogi, bi in zip(self.bdata, b):
+                varlogi.append(bi.copy())
         if self.verbose:
             print(itr, 'v', v)
             print(itr, 'x', x)
-            print(itr, 'b', b)
+            
+            if self.m != 0:print(itr, 'b', b)
 
 def weighted_projection_simplex(v, D, z=1, mid=0):
     """
