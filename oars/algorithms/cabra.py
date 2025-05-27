@@ -280,3 +280,126 @@ def cabraAlgorithm(data, A, B, W, Z, K=None, Q=None, warmstartprimal=None, warms
             logs.append([])
 
     return ybar, logs, all_x, all_v
+
+
+def cabraFullAlgorithm(data, A, B, W, Z, K=None, Q=None, warmstartprimal=None, warmstartdual=None, itrs=1001, gamma=0.9, alpha=1.0, verbose=False, callback=None):
+    """
+    Run the coupled adaptive backward-forward-backward resolvent splitting algorithm in serial
+
+    Args:
+        data (list): list of lists where data[0] has a list of :math:`n` initialization dictionaries for A, and data[1] contains the :math:`m` initialization dictionaries for B
+        A (list): list of :math:`n` initializable maximal monotone operators callable via a prox function 
+        B (list): list of :math:`m` initializable cocoercive operators callable via a grad function
+        W (list): list of :math:`p` between-iteration consensus ndarrays
+        Z (list): list of :math:`p` within-iteration coordination ndarrays
+        K (list): list of :math:`p` within-iteration A->B coordination ndarrays, optional
+        Q (list): list of :math:`p` within-iteration B->A coordination ndarrays, optional
+        warmstartprimal (ndarray, optional): resolvent.shape ndarray for :math:`x` in v^0, or length :math:`p` list of such
+        warmstartdual (ndarray, optional): n_k x resolvent.shape ndarray for :math:`u` which sums to 0 in v_k^0, or length :math:`p` list of such
+        itrs (int, optional): the number of iterations
+        gamma (float, optional): parameter in :math:`v^{k+1} = v^k - \\gamma W x^k`
+        alpha (float, optional): the resolvent step size in :math:`x^{k+1} = J_{\\alpha F^i}(y^k)`
+        verbose (bool, optional): True for verbose output
+        callback (function, optional): callback function
+
+    Returns:
+        x (ndarray): resolvent.shape ndarray of the mean over the node solutions at termination
+        logs (list): list of n+m logs for the operators
+        all_x (ndarray): n x resolvent.shape ndarray of the node solution
+        all_v (ndarray): n x resolvent.shape ndarray of the consensus iterates at solution
+
+    Examples:
+    """
+    # Initialize the operators
+    n = len(A)
+    m = len(B)
+    p = len(Z)
+    for i in range(n):
+        A[i] = A[i](**data[0][i])
+
+    for j in range(m):
+        B[j] = B[j](**data[1][j])
+
+    # Initialize the variables
+    all_x = [getVar(A[i]) for i in range(n)] # length n list of length k_i \\leq p dict of ndarrays
+    all_v = [getVar(A[i]) for i in range(n)] # length n list of length k_i \\leq p dict of ndarrays
+    all_b = [getVar(B[j]) for j in range(m)] # length m list of length k_j \\leq p dict of ndarrays
+
+    # Warm start -- to do!
+    # if warmstartprimal is None:
+    #     all_v = np.zeros((n,) + m)
+    # else:
+    #     all_v = getWarmPrimal(warmstartprimal, Z)
+    # if warmstartdual is not None:
+    #     all_v += warmstartdual
+    gammaW = [gamma*Wk for Wk in W]
+
+    # Get feeders and weights
+    PA = getPA([Ai.vars for Ai in A], p)
+    PB = getPA([Bj.vars for Bj in B], p)
+    fdr = getFeedersL(n, Z, PA)
+    Q_fdr = getFeedersQ(A, Q, PA, PB)
+    K_fdr = getFeedersK(B, K, PA, PB)
+
+    # Get B calculation order
+    Bready = getBorder(A, B, K, PA, PB)
+
+    # Get D_A
+    DA = permute(n, Z, PA)
+
+    # Run the algorithm
+    if verbose: 
+        print('date\t\ttime\t\titr\t||x-bar(x)||')
+        checkperiod = max(itrs//10,1)
+    for itr in range(itrs):
+        for i in range(n):
+            for k in A[i].vars:
+                all_x[i][k] = all_v[i][k].copy()
+                for (j, wt) in fdr[i][k]:
+                    all_x[i][k] += all_x[j][k]*wt
+                for (j, wt) in Q_fdr[i][k]:
+                    all_x[i][k] -= all_b[j][k]*wt
+                # all_x[i][k] *= DA_inv[i][k]
+            A[i].prox_step(all_x[i], alpha, DA[i])
+            for j in Bready[i]:
+                # Build argument for B.grad
+                for k in B[j].vars:
+                    b_input_k = sum(all_x[j][k]*wt for j,wt in K_fdr[j][k])
+                    all_b[j][k] = b_input_k
+                
+                # print('before', i, j, all_b[j])
+                B[j].grad(all_b[j])
+                
+                # print('after', i, j, all_b[j])
+                for k in B[j].vars:
+                    all_b[j][k] *= alpha
+            
+        if callback is not None and callback(itr, all_x, all_v, all_b): break
+
+        if verbose and itr % checkperiod == 0:
+            ybar = [np.mean([all_x[i][k] for i in PA[k]], axis=0) for k in range(p)]
+            ysqdiff = sum(sum(np.linalg.norm(all_x[i][k] - ybar[k])**2 for i in PA[k]) for k in range(p))
+            print(f"{datetime.now()}\t{itr}\t{ysqdiff:.3e}")
+
+        for i in range(n):
+            for k in A[i].vars:
+                idx = PA[k].index(i)
+                all_v[i][k] -= sum(gammaW[k][idx, jdx]*all_x[j][k] for jdx, j in enumerate(PA[k]))
+
+        
+    ybar = [np.mean([all_x[i][k] for i in PA[k]], axis=0) for k in range(p)]
+    
+    # Build logs list
+    logs = []
+    for i in range(n):
+        if hasattr(A[i], 'log'):
+            logs.append(A[i].log)
+        else:
+            logs.append([])
+    for j in range(m):
+        if hasattr(B[j], 'log'):
+            logs.append(B[j].log)
+        else:
+            logs.append([])
+
+    return ybar, logs, all_x, all_v
