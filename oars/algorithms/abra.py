@@ -67,7 +67,7 @@ def abraAlgorithm(A, B, K, Q, W, Z, data, warmstartprimal=None, warmstartdual=No
 
     # Run the algorithm
     if verbose: 
-        print('date\t\ttime\t\titr\t||x-bar(x)||\t||sum dual at x||')
+        print('date\t\ttime\t\titr\t||x-bar(x)||') #\t||sum dual at x||')
         checkperiod = max(itrs//10,1)
     for itr in range(itrs):
         all_b = zeros((m,) + shape)
@@ -89,7 +89,7 @@ def abraAlgorithm(A, B, K, Q, W, Z, data, warmstartprimal=None, warmstartdual=No
         if verbose and itr % checkperiod == 0:
             xbar = mean(all_x, axis=0)
             dualsum = 0.0 #np.linalg.norm(sum(getDuals(all_v, all_x, Z))) #Future work
-            print(f"{datetime.now()}\t{itr}\t{norm(all_x - xbar):.3e}\t{dualsum:.3e}")
+            print(f"{datetime.now()}\t{itr}\t{norm(all_x - xbar):.3e}") #\t{dualsum:.3e}
 
         all_v -= einsum('nl,l...->n...', gammaW, all_x)
 

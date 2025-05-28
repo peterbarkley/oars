@@ -224,7 +224,7 @@ def cabraAlgorithm(data, A, B, W, Z, K=None, Q=None, warmstartprimal=None, warms
 
     # Run the algorithm
     if verbose: 
-        print('date\t\ttime\t\titr\t||x-bar(x)||\t||sum dual at x||')
+        print('date\t\ttime\t\titr\t||x-bar(x)||') #\t||sum dual at x||
         checkperiod = max(itrs//10,1)
     for itr in range(itrs):
         for i in range(n):
@@ -256,7 +256,7 @@ def cabraAlgorithm(data, A, B, W, Z, K=None, Q=None, warmstartprimal=None, warms
             ysqdiff = sum(sum(np.linalg.norm(all_x[i][k] - ybar[k])**2 for i in PA[k]) for k in range(p))
             # dualsum = np.linalg.norm(sum(getDualsCabra(all_v, all_x, all_b, Z)))
             dualsum = 0.0
-            print(f"{datetime.now()}\t{itr}\t{ysqdiff:.3e}\t{dualsum:.3e}")
+            print(f"{datetime.now()}\t{itr}\t{ysqdiff:.3e}") # \t{dualsum:.3e}
 
         for i in range(n):
             for k in A[i].vars:

@@ -367,7 +367,7 @@ def getCabraClose(n, m=0, da=None, db=None, fixed_Z={}, fixed_W={}, fixed_Q={}, 
 def getU(Q, K, beta=None):
     if beta is None:
         beta = ones(Q.shape[1])
-    bi = diag(1/beta)
+    bi = diag(1.0/beta)
     return (Q - K.T)@bi@(Q.T - K)
 
 def getMinConditionW(Z, Q, K, da, db, alpha=1.0, c=None, verbose=False):
