@@ -273,7 +273,7 @@ def getRedSmoothStrongMatrix(lipschitz, mu, i, Z, M, alpha=1):
 
     return K
 
-def getReducedContractionFactor(Z, M, ls=None, mus=None, operators=None, alpha=1, gamma=0.5, verbose=False):
+def getReducedContractionFactor(Z, M, ls=None, mus=None, operators=None, alpha=1, gamma=0.5, scaling=1.0, verbose=False):
     '''
     Get contraction factor for resolvent splitting via PEP
 
@@ -300,25 +300,26 @@ def getReducedContractionFactor(Z, M, ls=None, mus=None, operators=None, alpha=1
     constraints = [cvx.trace(Kpi @ G) >= 0 for Kpi in Kp]
     constraints += [cvx.trace(Ki @ G) == 1]
 
-    objective = cvx.Maximize(cvx.trace(Ko @ G))
+    objective = cvx.Maximize(scaling * cvx.trace(Ko @ G))
 
     prob = cvx.Problem(objective, constraints)
     prob.solve()
     if prob.status != 'optimal':
         print('Problem not solved')
         return None
+    tau = prob.value/scaling
     if verbose:
         print(prob.status)
-        print(prob.value)
+        print(tau)
         print(G.value)
 
         # Duals
         for i in range(len(constraints)):
             print(constraints[i].dual_value)
 
-    return prob.value
+    return tau
 
-def getContractionFactor(Z, W, ls=None, mus=None, operators=None, alpha=1, gamma=0.5, verbose=False, **kwargs):
+def getContractionFactor(Z, W, ls=None, mus=None, operators=None, alpha=1, gamma=0.5, scaling=1.0, verbose=False, **kwargs):
     """
     Get the contraction factor for the resolvent splitting method
     :math:`v = v - \\gamma W x` for given `Z` and `W` matrices
@@ -346,16 +347,17 @@ def getContractionFactor(Z, W, ls=None, mus=None, operators=None, alpha=1, gamma
     constraints += [cvx.trace(Ki @ G) == 1]
     constraints += [cvx.trace(K1 @ G) == 0]
 
-    objective = cvx.Maximize(cvx.trace(Ko @ G))
+    objective = cvx.Maximize(scaling*cvx.trace(Ko @ G))
 
     prob = cvx.Problem(objective, constraints)
     prob.solve(verbose=verbose, **kwargs)
     if prob.status != 'optimal':
         print('Problem not solved', prob.status)
         return None
+    tau = prob.value/scaling
     if verbose:
         print(prob.status)
-        print('tau', prob.value)
+        print('tau', tau)
         print('G', G.value)
 
         # Duals
@@ -363,9 +365,9 @@ def getContractionFactor(Z, W, ls=None, mus=None, operators=None, alpha=1, gamma
         for i in range(len(constraints)):
             print(constraints[i].dual_value)
 
-    return prob.value
+    return tau
 
-def getOptimalW(Z, ls=None, mus=None, operators=None, Wref=None, W_fixed={}, alpha=1, verbose=False):
+def getOptimalW(Z, ls=None, mus=None, operators=None, Wref=None, W_fixed={}, alpha=1, scaling=1.0, verbose=False):
     '''
     Use the dual PEP to get the optimal W
 
@@ -386,11 +388,11 @@ def getOptimalW(Z, ls=None, mus=None, operators=None, Wref=None, W_fixed={}, alp
     n = Z.shape[0]
     _, K1, Ki, Ks = getConstraintMatrices(Z, ls=ls, mus=mus, operators=operators, alpha=alpha)
     lambda_s = cvx.Variable(len(Ks), nonneg=True)
-    lambda_one = cvx.Variable(1)
-    rho2 = cvx.Variable(1)
+    lambda_one = cvx.Variable()
+    rho2 = cvx.Variable()
    
     if Wref is not None:
-        gam = cvx.Variable(1)
+        gam = cvx.Variable()
         Wvar = gam*Wref
     else:
         Wvar = cvx.Variable(Z.shape, symmetric=True)
@@ -406,22 +408,23 @@ def getOptimalW(Z, ls=None, mus=None, operators=None, Wref=None, W_fixed={}, alp
     for idx, val in W_fixed.items():
         constraints.append(Wvar[idx] == val)
 
-    obj = cvx.Minimize(rho2)
+    obj = cvx.Minimize(scaling*rho2)
 
     prob = cvx.Problem(obj, constraints)
     prob.solve()
+    tau = float(rho2.value)
     if verbose:
         print(prob.status)
-        print('tau', rho2.value)
+        print('tau', tau)
         print('W', Wvar.value)
         print('lambda s', lambda_s.value)
         print('lambda one', lambda_one.value)
         print('S', S.value)
         print('St', Stilde.value)
 
-    return Wvar.value, prob.value
+    return Wvar.value, tau
 
-def getContractionOptGamma(Z, W, ls=None, mus=None, operators=None, alpha=1, verbose=False):
+def getContractionOptGamma(Z, W, ls=None, mus=None, operators=None, alpha=1, scaling=1.0, verbose=False):
     '''
     Use the dual PEP to get the optimal step size gamma
     for the resolvent splitting method given by equation (12) in the paper, i.e. 
@@ -440,13 +443,13 @@ def getContractionOptGamma(Z, W, ls=None, mus=None, operators=None, alpha=1, ver
         tau (float): contraction factor using the optimal step size
         gamma (float): optimal step size
     '''
-    Wvar, tau = getOptimalW(Z, ls=ls, mus=mus, operators=operators, Wref=W, alpha=alpha, verbose=verbose)
+    Wvar, tau = getOptimalW(Z, ls=ls, mus=mus, operators=operators, Wref=W, alpha=alpha, scaling=scaling, verbose=verbose)
     if Wvar is None:
         return None, None
     gamma = Wvar[0,0]/W[0,0]
     return tau, gamma
 
-def getReducedContractionOptGamma(Z, M, ls=None, mus=None, operators=None, alpha=1, verbose=False):
+def getReducedContractionOptGamma(Z, M, ls=None, mus=None, operators=None, alpha=1, scaling=1.0, verbose=False):
     '''
     Use the dual PEP to get the optimal step size gamma
     for the reduced resolvent splitting method given by equation (11) in the paper, i.e.
@@ -471,8 +474,8 @@ def getReducedContractionOptGamma(Z, M, ls=None, mus=None, operators=None, alpha
 
     # Define dual variables
     l = cvx.Variable(len(Kp), nonneg=True)
-    rho2 = cvx.Variable(1)
-    gam = cvx.Variable(1)
+    rho2 = cvx.Variable()
+    gam = cvx.Variable()
 
     # Define the dual problem
     S = sum(l[i]*Kp[i] for i in range(len(Kp)))
@@ -481,21 +484,22 @@ def getReducedContractionOptGamma(Z, M, ls=None, mus=None, operators=None, alpha
     Stilde = cvx.bmat([[rho2*Ki-S, obvec.T], [obvec, np.eye(d)]])
     constraints = [Stilde >> 0]
 
-    obj = cvx.Minimize(rho2)
+    obj = cvx.Minimize(scaling * rho2)
 
     prob = cvx.Problem(obj, constraints)
     prob.solve()
+    tau = float(rho2.value)
     if verbose:
         print(prob.status)
         print(prob.value)
-        print('rho2', rho2.value)
+        print('tau', tau)
         print('gam', gam.value)
-        print(lmu.value)
-        print(ll.value)
+        # print(lmu.value)
+        # print(ll.value)
         print(S.value)
         print(Stilde.value)
 
-    return prob.value, gam.value[0]
+    return tau, float(gam.value)
 
 def getCoreMatrices(n, gamma, W):
     '''

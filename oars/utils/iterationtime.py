@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import cvxpy as cvx
-from plotly.express import timeline
+import matplotlib.pyplot as plt
 from oars.matrices.core import getMfromWCholesky
 from oars.pep import getReducedContractionOptGamma
 
@@ -77,7 +77,7 @@ def getIterationTime(t, l, Z, W, itrs=None):
     cycle_length = (s[itrs-1,n-1]-s[itrs-2,n-1]).value
     return cycle_length, s.value, X
 
-def getGantt(t, l, Z, W, title="Example", itrs=None):
+def getGantt(t, l, Z, W, itrs=None):
     """
     Get Gantt chart for the parallel algorithm
 
@@ -105,28 +105,23 @@ def getGantt(t, l, Z, W, title="Example", itrs=None):
     n = len(t)
     if itrs is None:
         itrs = 2*n
-    tt, s, x = getIterationTime(t, l, Z, W, itrs=itrs)
-    dflist = []
+    _, s, _ = getIterationTime(t, l, Z, W, itrs=itrs)
 
+    fig, ax = plt.subplots(figsize=(6, 4))
     for i in range(itrs): # Iterations
-        for j in range(n): # Operations
-            start = s[i,j]
-            stop = start + t[j]
-            dflist.append(dict(Task="Iter %s" % (i+1), Start=start, Finish=stop, Resource="Node %s" % (j+1)))
-    df = pd.DataFrame(dflist)
-    df['delta'] = df['Finish'] - df['Start']
+        data = {'Task': [f'Node {j+1}' for j in range(n)],
+                'Start': [s[i,j] for j in range(n)],
+                'End': [s[i,j] + t[j] for j in range(n)]}
+        df = pd.DataFrame(data)
+        ax.hlines(df.index[::-1], df['Start'], df['End'], color=f'C{i}', label=f'Iteration {i+1}', linewidth=20) # lines for tasks
+    ax.set_yticks(df.index) # y ticks
+    ax.set_yticklabels(df['Task'][::-1]) # y labels
 
-    fig = timeline(df, x_start="Start", x_end="Finish", y="Resource", color="Task")
-    fig.update_yaxes(autorange="reversed") 
+    ax.set_xlabel('Time (s)')
+    leg = ax.legend()
+    for i in range(itrs):
+        leg.get_lines()[i].set_linewidth(5)
 
-    fig.layout.xaxis.type = 'linear'
-    for d in fig.data:
-        filt = df['Task'] == d.name
-        d.x = df[filt]['delta'].tolist()
-
-    if title != '':
-        fig.update_layout(title_text=title)
-    fig.update_layout(xaxis_title="Time Units")
     return fig
 
 def getMetrics(Z, W, t=None, l=None, ls=None, mus=None, contraction_target=0.5):
