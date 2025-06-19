@@ -116,26 +116,27 @@ def getFeedersL(n, Z, P):
 
     return fdr
 
-def getPA(Avars, p=None):
+def getPA(varlist, p=None):
     """
     Use the variables assigned to each operator to build the 
     set of operators assigned to each variable
 
     Args:
-        A (list): list of :math:`n` operators with a vars attribute giving the ordered variable for each operator
+        varlist (list): list of :math:`n` operators with a vars attribute giving the ordered variable for each operator
+        p (int): maximum variable index
 
     Returns:
         PA (list): list of :math:`p` lists with the ordered operators for each variable 
     """
-    n = len(Avars)
+    n = len(varlist)
     if p is None:
         p = 0
         for i in range(n):
-            p = max(p, max(Avars[i]))
+            p = max(p, max(varlist[i]))
         p += 1
     PA = [[] for _ in range(p)]
     for i in range(n):
-        for k in Avars[i]:
+        for k in varlist[i]:
             PA[k].append(i)
 
     return PA

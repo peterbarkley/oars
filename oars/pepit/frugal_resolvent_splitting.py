@@ -5,7 +5,7 @@ from numpy import array
 
 def wc_frugal_resolvent_splitting(L, W, lipschitz_values, mu_values, operator=SmoothStronglyConvexFunction, alpha=1, gamma=0.5, wrapper="cvxpy", solver=None, verbose=1):
     """
-    Consider the the monotone inclusion problem
+    Consider the monotone inclusion problem
 
     .. math:: \\mathrm{Find}\\, x:\\, 0 \\in \\sum_{i=1}^{n} A_i(x),
 

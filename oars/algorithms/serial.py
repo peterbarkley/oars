@@ -60,6 +60,7 @@ def serialAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdu
         all_v += warmstartdual
     gammaW = gamma*W
 
+    all_y = np.zeros((n,) + m)
     # Run the algorithm
     if verbose: 
         print('date\t\ttime\t\titr\t||x-bar(x)||\t||sum dual at x||')
@@ -67,12 +68,12 @@ def serialAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdu
     for itr in range(itrs):
         for i in range(n):
             if i == 0:
-                y = all_v[0]
+                all_y[i] = all_v[0]
             else:
-                y = all_v[i] - np.einsum('i,i...->...', Z[i,:i], all_x[:i])
-            all_x[i] = resolvents[i].prox(y, alpha)
+                all_y[i] = all_v[i] - np.einsum('i,i...->...', Z[i,:i], all_x[:i])
+            all_x[i] = resolvents[i].prox(all_y[i], alpha)
             
-        if callback is not None and callback(itr, all_x, all_v): break
+        if callback is not None and callback(itr=itr, x=all_x, v=all_v, y=all_y): break
 
         if verbose and itr % checkperiod == 0:
             xbar = np.mean(all_x, axis=0)

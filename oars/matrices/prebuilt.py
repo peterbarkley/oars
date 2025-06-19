@@ -1,4 +1,4 @@
-from numpy import zeros, ones, eye, block
+from numpy import zeros, ones, eye, block, diag
 
 def getMT(n, m=0):
     '''
@@ -40,7 +40,7 @@ def getMT(n, m=0):
     U = (P - K.T)@(P.T - K)
     return Z,W,U,P,K
 
-def getFull(n, m=0):
+def getFull(n, m=0, betas=None):
     '''
     Return Z, W for a fully connected graph with n nodes
     and weight 2 evenly distributed among all edges
@@ -71,16 +71,26 @@ def getFull(n, m=0):
     if m == 0:
         return Z, W
 
+    if betas is None:
+        betas = ones(m)
     s = 1/m
     K = block([s*ones((m,m)), zeros((m,n-m))])
-    P = block([zeros((m,n-m)), s*eye(m)]).T
-    U = (P - K.T)@(P.T - K)
-    return Z,W,U,P,K
+    Q = block([zeros((m,n-m)), s*eye(m)]).T
+    U = (Q - K.T)@diag(betas)@(Q.T - K)
+    return Z,W,U,Q,K
 
 def getFullCabra(n, m):
     """
     Return matrix parameters Z, W, U, Q, K for the connected graph
     """
+    
+def getCaraFull(n):
+    X = -ones((n,n))
+    if n > 1:
+        X /= (n-1)
+    for i in range(n):
+        X[i,i] = 1.0
+    return X
     
 def getRyu(n):
     '''

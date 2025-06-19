@@ -13,7 +13,7 @@ def getBafter(K, n, m):
     return bafter
 
 
-def abraAlgorithm(A, B, K, Q, W, Z, data, warmstartprimal=None, warmstartdual=None, itrs=1001, gamma=0.9, alpha=1.0, verbose=False, callback=None):
+def abraAlgorithm(data, A, B, W, Z, K=None, Q=None, warmstartprimal=None, warmstartdual=None, itrs=1001, gamma=0.9, alpha=1.0, verbose=False, callback=None):
     """
     Run the frugal resolvent splitting algorithm defined by Z and W in serial
 
@@ -50,6 +50,7 @@ def abraAlgorithm(A, B, K, Q, W, Z, data, warmstartprimal=None, warmstartdual=No
         B[j] = B[j](**data[1][j])
     shape = A[0].shape
     all_x = zeros((n,) + shape)
+    all_y = zeros((n,) + shape)
     all_v = zeros((n,) + shape)
     all_b = zeros((m,) + shape)
 
@@ -73,18 +74,19 @@ def abraAlgorithm(A, B, K, Q, W, Z, data, warmstartprimal=None, warmstartdual=No
         all_b = zeros((m,) + shape)
         for i in range(n):
             if i == 0:
-                y = all_v[0]
+                all_y[i] = all_v[0]
             else:
-                y = all_v[i] + einsum('i,i...->...', L[i,:i], all_x[:i]) - alpha*sum(Q[i,j]*all_b[j] for j in range(m))
+                all_y[i] = all_v[i] + einsum('i,i...->...', L[i,:i], all_x[:i]) - alpha*sum(Q[i,j]*all_b[j] for j in range(m))
             # print('y', i, y)
-            all_x[i] = A[i].prox(y/Z[i, i], alpha/Z[i, i])
+            all_y[i] /= Z[i,i]
+            all_x[i] = A[i].prox(all_y[i], alpha/Z[i, i])
             for j in bafter[i]:
                 # y = einsum('j,i...->...', K[j,:i+1], all_x[:i+1])
                 y = sum(K[j, d]*all_x[d] for d in range(i+1))
                 # print('b', i, j, y)
                 all_b[j] = B[j].grad(y)
             
-        if callback is not None and callback(itr, all_x, all_v, all_b): break
+        if callback is not None and callback(itr=itr, x=all_x, v=all_v, b=all_b, y=all_y): break
 
         if verbose and itr % checkperiod == 0:
             xbar = mean(all_x, axis=0)
@@ -110,3 +112,4 @@ def abraAlgorithm(A, B, K, Q, W, Z, data, warmstartprimal=None, warmstartdual=No
             logs.append([])
 
     return x, logs, all_x, all_v, all_b
+

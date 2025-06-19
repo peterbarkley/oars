@@ -18,7 +18,7 @@ URL = 'https://github.com/peter.barkley/oars'
 EMAIL = 'peter.barkley a-t nps.edu'
 AUTHOR = 'Peter Barkley'
 REQUIRES_PYTHON = '>=3.6.0'
-VERSION = '0.1.0'
+VERSION = '0.1.1'
 
 # What packages are required for this module to be executed?
 REQUIRED = [
@@ -28,10 +28,9 @@ REQUIRED = [
 # What packages are optional?
 EXTRAS = {
     'pepit': ['PEPit'],
-    'analyis': ['plotly', 'pandas'],
     'distributed': ['mpi4py'],
-    'all': ['PEPit', 'plotly', 'pandas', 'mpi4py'],
-    'paper': ['plotly', 'kaleido', 'pandas', 'matplotlib', 'seaborn', 'jupyter', 'mosek', 'gurobipy']
+    'all': ['PEPit', 'pandas', 'mpi4py'],
+    'paper': ['pandas', 'matplotlib', 'seaborn', 'jupyter', 'mosek', 'gurobipy']
 }
 
 # The rest you shouldn't have to touch too much :)

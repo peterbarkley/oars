@@ -803,15 +803,20 @@ def ipf(A, itrs=100, tol=1e-6, verbose=False):
     '''
     X = A.astype(float)
     rows, cols = X.shape
+    converged = False
     for i in range(itrs):
         for r in range(rows):
             X[r] = X[r] / np.sum(X[r])
         for c in range(cols):
             X[:, c] = X[:, c] / np.sum(X[:, c])
         if np.allclose(np.sum(X, axis=1), np.ones(rows), atol=tol) and np.allclose(np.sum(X, axis=0), np.ones(cols), atol=tol):
+            converged = True
             break
     if verbose:
-        print("IPF converged after {} iterations".format(i))
+        if converged:
+            print(f'SK converged after {i} iterations')
+        else:
+            print("SK did not converge")
     return X
 
 def ipf_sparse(X, itrs=100, tol=1e-6, verbose=False):
@@ -830,6 +835,7 @@ def ipf_sparse(X, itrs=100, tol=1e-6, verbose=False):
     '''
 
     rows, cols = X.shape
+    converged = False
     for i in range(itrs):
         rowsum = X.sum(axis=1)
         for r in range(rows):
@@ -840,9 +846,13 @@ def ipf_sparse(X, itrs=100, tol=1e-6, verbose=False):
         for c in range(cols):
             X[:, c] = X[:, c] / colsum[0, c]
         if np.allclose(np.sum(X, axis=1), np.ones(rows), atol=tol) and np.allclose(np.sum(X, axis=0), np.ones(cols), atol=tol):
+            converged = True
             break
     if verbose:
-        print("IPF converged after {} iterations".format(i))
+        if converged:
+            print(f'SK converged after {i} iterations')
+        else:
+            print("SK did not converge")
     return X
 
 
