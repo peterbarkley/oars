@@ -490,8 +490,6 @@ def getReducedContractionOptGamma(Z, M, ls=None, mus=None, operators=None, alpha
         print(prob.value)
         print('rho2', rho2.value)
         print('gam', gam.value)
-        print(lmu.value)
-        print(ll.value)
         print(S.value)
         print(Stilde.value)
 

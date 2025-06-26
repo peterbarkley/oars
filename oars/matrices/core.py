@@ -779,7 +779,7 @@ def ipf(A, itrs=100, tol=1e-6, verbose=False):
     Iterative Proportional Fitting for forming doubly stochastic matrices
 
     Args:
-        A (ndarray): n x n numpy array of nonnegative matrix
+        A (ndarray): n x n numpy array of nonnegative matrix with support
         itrs (int): maximum number of iterations
         tol (float): tolerance for convergence
         verbose (bool): whether to print convergence information
@@ -790,11 +790,12 @@ def ipf(A, itrs=100, tol=1e-6, verbose=False):
     Examples:
         >>> from oars.matrices import ipf
         >>> import numpy as np
-        >>> X = np.array([[0, 1, 1, 1], 
+        >>> X = np.array([
+              [0, 1, 1, 1], 
               [1, 0, 0, 1],
               [1, 0, 0, 1],
-              [1, 1, 1, 0]], dtype=float)
-        >>> Y = ipf(X.copy())
+              [1, 1, 1, 0]])
+        >>> Y = ipf(X)
         >>> print(Y)
         [[0.  0.5 0.5 0. ]
          [0.5 0.  0.  0.5]
@@ -809,7 +810,7 @@ def ipf(A, itrs=100, tol=1e-6, verbose=False):
             X[r] = X[r] / np.sum(X[r])
         for c in range(cols):
             X[:, c] = X[:, c] / np.sum(X[:, c])
-        if np.allclose(np.sum(X, axis=1), np.ones(rows), atol=tol) and np.allclose(np.sum(X, axis=0), np.ones(cols), atol=tol):
+        if np.allclose(np.sum(X, axis=1), np.ones(rows), atol=tol, rtol=0.0) and np.allclose(np.sum(X, axis=0), np.ones(cols), atol=tol, rtol=0.0):
             converged = True
             break
     if verbose:
@@ -845,7 +846,7 @@ def ipf_sparse(X, itrs=100, tol=1e-6, verbose=False):
         colsum = X.sum(axis=0)
         for c in range(cols):
             X[:, c] = X[:, c] / colsum[0, c]
-        if np.allclose(np.sum(X, axis=1), np.ones(rows), atol=tol) and np.allclose(np.sum(X, axis=0), np.ones(cols), atol=tol):
+        if np.allclose(np.sum(X, axis=1), np.ones(rows), atol=tol, rtol=0.0) and np.allclose(np.sum(X, axis=0), np.ones(cols), atol=tol, rtol=0.0):
             converged = True
             break
     if verbose:
