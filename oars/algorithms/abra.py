@@ -1,4 +1,5 @@
-from numpy import isclose, zeros, mean, tril, einsum
+from numpy import isclose, zeros, mean, tril, einsum, array
+from numpy import sum as npsum
 from numpy.linalg import norm
 from datetime import datetime
 
@@ -51,16 +52,14 @@ def abraAlgorithm(data, A, B, W, Z, K=None, Q=None, warmstartprimal=None, warmst
     shape = A[0].shape
     all_x = zeros((n,) + shape)
     all_y = zeros((n,) + shape)
-    all_v = zeros((n,) + shape)
     all_b = zeros((m,) + shape)
 
-    # Future work
-    # if warmstartprimal is None:
-    #     all_v = np.zeros((n,) + m)
-    # else:
-    #     all_v = getWarmPrimal(warmstartprimal, Z)
-    # if warmstartdual is not None:
-    #     all_v += warmstartdual
+    if warmstartprimal is None:
+        all_v = zeros((n,) + shape)
+    else:
+        all_v = array([(Z[i,i] + 2.0*sum(Z[i,j] for j in range(i)))*warmstartprimal for i in range(n)])
+    if warmstartdual is not None:
+        all_v += warmstartdual
 
     gammaW = gamma*W
     bafter = getBafter(K, n, m)
@@ -68,7 +67,7 @@ def abraAlgorithm(data, A, B, W, Z, K=None, Q=None, warmstartprimal=None, warmst
 
     # Run the algorithm
     if verbose: 
-        print('date\t\ttime\t\titr\t||x-bar(x)||') #\t||sum dual at x||')
+        print('date\t\ttime\t\titr\t||x-bar(x)||\t||sum dual||')
         checkperiod = max(itrs//10,1)
     for itr in range(itrs):
         all_b = zeros((m,) + shape)
@@ -90,8 +89,10 @@ def abraAlgorithm(data, A, B, W, Z, K=None, Q=None, warmstartprimal=None, warmst
 
         if verbose and itr % checkperiod == 0:
             xbar = mean(all_x, axis=0)
-            dualsum = 0.0 #np.linalg.norm(sum(getDuals(all_v, all_x, Z))) #Future work
-            print(f"{datetime.now()}\t{itr}\t{norm(all_x - xbar):.3e}") #\t{dualsum:.3e}
+            
+            subgs = array([Z[i,i]*(all_y[i] - all_x[i]) for i in range(n)])
+            subg_sum_norm = norm(npsum(subgs, axis=0))
+            print(f"{datetime.now()}\t{itr}\t{norm(all_x - xbar):.3e}\t{subg_sum_norm:.3e}") 
 
         all_v -= einsum('nl,l...->n...', gammaW, all_x)
 
