@@ -39,7 +39,8 @@ def constantCaraAlgorithm(data, A, W, Z, warmstartprimal=None, warmstartdual=Non
     # Initialize the variables
     all_x = [getVar(A[i]) for i in range(n)] # length n list of length k_i \\leq p dict of ndarrays
     all_v = [getVar(A[i]) for i in range(n)] # length n list of length k_i \\leq p dict of ndarrays
-    # all_y = [np.array(0) for i in range(n)]
+    if verbose or callback is not None:
+        all_y = all_x.copy()
     gammaW = [gamma*Wk for Wk in W]
 
     # Get feeders and weights
@@ -58,7 +59,7 @@ def constantCaraAlgorithm(data, A, W, Z, warmstartprimal=None, warmstartdual=Non
 
     # Run the algorithm
     if verbose: 
-        print('date\t\ttime\t\titr\t||x-bar(x)||') #\t||sum dual at x||
+        print('date\t\ttime\t\titr\t||x-bar(x)||\t||sum dual||')
         checkperiod = max(itrs//10,1)
     for itr in range(itrs):
         for i in range(n):
@@ -66,10 +67,11 @@ def constantCaraAlgorithm(data, A, W, Z, warmstartprimal=None, warmstartdual=Non
                 all_x[i][k] = all_v[i][k].copy()
                 for (j, wt) in fdr[i][k]:
                     all_x[i][k] += all_x[j][k]*wt
-            # all_y[i] = np.array(list(all_x[i].values())).flatten()
+            if verbose or callback is not None:
+                all_y[i] = all_x[i].copy()
             A[i].prox_step(all_x[i], alpha)
             
-        if callback is not None and callback(itr, all_x, all_v): break
+        if callback is not None and callback(itr, all_x, all_v, all_y): break
 
         if verbose and itr % checkperiod == 0:
             ysqdiff = 0.0
@@ -77,9 +79,8 @@ def constantCaraAlgorithm(data, A, W, Z, warmstartprimal=None, warmstartdual=Non
                 if len(PA[k]) > 1:
                     ybar = np.mean([all_x[i][k] for i in PA[k]], axis=0)
                     ysqdiff += sum(np.linalg.norm(all_x[i][k] - ybar)**2 for i in PA[k])
-            # dualsum = np.linalg.norm(sum(getDualsCabra(all_v, all_x, all_b, Z)))
-            # dualsum = 0.0
-            print(f"{datetime.now()}\t{itr}\t{ysqdiff:.3e}") # \t{dualsum:.3e}
+            subg_sum_norm = sum([sum([all_y[i][k]-all_x[i][k] for i in PA[k]])**2 for k in range(p)])**0.5
+            print(f"{datetime.now()}\t{itr}\t{ysqdiff**0.5:.3e}\t{subg_sum_norm:.3e}")
 
         for i in range(n):
             for k in A[i].vars:
