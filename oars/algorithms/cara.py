@@ -1,8 +1,17 @@
 import numpy as np
 from datetime import datetime
-from oars.algorithms.cabra import getPA, getVar, getFeedersL
+from oars.algorithms.cabra import getPA
 from oars.matrices.prebuilt import getCaraFull
 from oars.matrices.core import ipf
+
+def getVar(data):
+    data['indices'] = {}
+    start = 0
+    for k, klength in zip(data['varlist'], data['varshapes']):
+        stop = start+klength
+        data['indices'][k] = np.arange(start, stop)
+        start = stop
+    return np.zeros(stop)
 
 def getFeedersL(Z, PA, A):
     """
@@ -118,7 +127,7 @@ def caraAlgorithm(data, A, W, Z, warmstartprimal=None, warmstartdual=None, itrs=
                 all_y[i] = all_x[i].copy()
             all_x[i] = A[i].prox(all_x[i], alpha)
             
-        if callback is not None and callback(itr, all_x, all_v, all_y): break
+        if callback is not None and callback(itr, all_x, all_v, all_y, A): break
 
         if verbose and itr % checkperiod == 0:
             ysqdiff = 0.0
