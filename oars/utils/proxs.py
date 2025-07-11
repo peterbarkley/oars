@@ -383,7 +383,7 @@ class linearSubdiff(baseProx):
 
         return Y
 
-class absprox(baseProx):
+class absProx(baseProx):
     '''L1 Norm Resolvent function'''
     def __init__(self, data):
         self.data = data
@@ -537,12 +537,15 @@ class halfspaceProj():
             return y - t*self.u
         return y
 
-class nullprox():
-    def __init__(self, data):
-        self.shape = data.shape
-        self.logging = True
-        self.log = []
+class circleProx():
+    def __init__(self, center, radius):
+        self.shape = center.shape
+        self.center = center
+        self.radius = radius
 
-    @_log
-    def prox(self, y, tau=1.0):
-        return y
+    def prox(self, y, alpha=1.0):
+        t = np.linalg.norm(y - self.center)
+        if t < self.radius:
+            return y
+        
+        return self.center + (self.radius/t)*(y-self.center)

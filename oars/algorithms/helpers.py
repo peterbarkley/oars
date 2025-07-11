@@ -149,3 +149,14 @@ def cb(itr, all_x, all_v, xtol=1e-6, dualtol=1e-6):
         return True
 
     return False
+
+class cbdata():
+    def __init__(self, n):
+        self.xdata = [[] for _ in range(n)]
+        self.ydata = [[] for _ in range(n)]
+
+    def __call__(self, itr, x, v, y):
+        for i, xilist in enumerate(self.xdata):
+            xilist.append(x[i].copy())
+        for i, yilist in enumerate(self.ydata):
+            yilist.append(y[i]-x[i])
