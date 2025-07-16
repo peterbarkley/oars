@@ -19,10 +19,13 @@ def abraAlgorithm(data, A, B, W, Z, K=None, Q=None, warmstartprimal=None, warmst
     Run the frugal resolvent splitting algorithm defined by Z and W in serial
 
     Args:
-        data (list): list containing the problem data for each resolvent
-        resolvents (list): list of :math:`n` resolvent classes
+        data (list): list of lists where data[0] has a list of :math:`n` initialization dictionaries for A, and data[1] contains the :math:`m` initialization dictionaries for B
+        A (list): list of :math:`n` initializable maximal monotone operators callable via a prox function 
+        B (list): list of :math:`m` initializable cocoercive operators callable via a grad function
         W (ndarray): size (n, n) ndarray for the :math:`W` matrix
         Z (ndarray): size (n, n) ndarray for the :math:`Z` matrix
+        K (ndarray): size (m, n) ndarray for the :math:`K` matrix
+        Q (ndarray): size (n, m) ndarray for the :math:`Q` matrix
         warmstartprimal (ndarray, optional): resolvent.shape ndarray for :math:`x` in v^0
         warmstartdual (ndarray, optional): n x resolvent.shape ndarray for dual values :math:`u` which sums to 0 in v^0
         itrs (int, optional): the number of iterations
@@ -76,13 +79,11 @@ def abraAlgorithm(data, A, B, W, Z, K=None, Q=None, warmstartprimal=None, warmst
                 all_y[i] = all_v[0]
             else:
                 all_y[i] = all_v[i] + einsum('i,i...->...', L[i,:i], all_x[:i]) - alpha*sum(Q[i,j]*all_b[j] for j in range(m))
-            # print('y', i, y)
             all_y[i] /= Z[i,i]
             all_x[i] = A[i].prox(all_y[i], alpha/Z[i, i])
             for j in bafter[i]:
                 # y = einsum('j,i...->...', K[j,:i+1], all_x[:i+1])
                 y = sum(K[j, d]*all_x[d] for d in range(i+1))
-                # print('b', i, j, y)
                 all_b[j] = B[j].grad(y)
             
         if callback is not None and callback(itr=itr, x=all_x, v=all_v, b=all_b, y=all_y): break
@@ -91,7 +92,10 @@ def abraAlgorithm(data, A, B, W, Z, K=None, Q=None, warmstartprimal=None, warmst
             xbar = mean(all_x, axis=0)
             
             subgs = array([Z[i,i]*(all_y[i] - all_x[i]) for i in range(n)])
-            subg_sum_norm = norm(npsum(subgs, axis=0))
+            sum_subgs = npsum(subgs, axis=0)
+            if m > 0:
+                sum_subgs += alpha*npsum(all_b, axis=0)
+            subg_sum_norm = norm(sum_subgs)
             print(f"{datetime.now()}\t{itr}\t{norm(all_x - xbar):.3e}\t{subg_sum_norm:.3e}") 
 
         all_v -= einsum('nl,l...->n...', gammaW, all_x)

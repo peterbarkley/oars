@@ -1,4 +1,5 @@
 from numpy import cos, pi, eye, ones, tril, diag
+from numpy import sum as npsum
 from numpy.linalg import inv, eigvals, norm
 import cvxpy as cvx
 from .core import getIncidenceFixed, getMfromWCholesky
@@ -102,22 +103,8 @@ def getCabra(n, m, fixed_Z={}, fixed_W={}, fixed_Q={}, fixed_K={}, cutoffs=None,
 
     return Z, W, Q, K, cons    
 
-# def getCabraTightZ(n, m, verbose=False, solverargs={}, **kwargs):
-#     Z, W, Q, K, cons = getCabra(n, m, **kwargs)
-#     obj = cvx.Minimize(cvx.lambda_max(ZminusU))
-#     prob = cvx.Problem(obj, cons)
-#     prob.solve(verbose=(verbose==2), **solverargs)
-    
-#     U = getU(Q.value, K.value)
-#     if verbose > 0:
-#         print(Z.value)
-#         print(W.value)
-#         print(K.value)
-#         print(Q.value)
-#         print(U)
-#     return Z.value, W.value, Q.value, K.value, U
 
-def getCabraMinZ(n, m, beta=None, verbose=False, solverargs={}, **kwargs):
+def getCabraMinZ(n, m, beta=None, verbose=False, solverargs={}, atol=1e-5, **kwargs):
     if beta is None:
         beta = ones(m)
     Z, W, Q, K, cons = getCabra(n, m, beta=beta, **kwargs)
@@ -125,12 +112,18 @@ def getCabraMinZ(n, m, beta=None, verbose=False, solverargs={}, **kwargs):
     prob = cvx.Problem(obj, cons)
     prob.solve(verbose=(verbose==2), **solverargs)
     
+    return postProcess(m, beta, Z, W, Q, K, atol, verbose)
+
+def postProcess(m, beta, Z, W, Q, K, atol=1e-5, verbose=False):
+    Zv = clean(Z.value, atol)
+    Wv = clean(W.value, atol)
     if m > 0:
-        Qv = Q.value
-        Kv = K.value
+        Qv = cleanQ(Q.value)
+        Kv = cleanK(K.value)
         U = getU(Qv, Kv, beta)
     else:
         U = Qv = Kv = None
+
     if verbose > 0:
         print('Z', Z.value)
         print('W', W.value)
@@ -138,9 +131,37 @@ def getCabraMinZ(n, m, beta=None, verbose=False, solverargs={}, **kwargs):
             print('Q', Qv)
             print('K', Kv)
             print('U', U)
-    return Z.value, W.value, Qv, Kv, U
 
-def getCabraMinZCloseW(n, m, t=1.0, beta=None, verbose=False, solverargs={}, **kwargs):
+    return Zv, Wv, Qv, Kv, U
+
+def clean(Z, atol=1e-5):
+    r, c = Z.shape
+    for i in range(r):
+        for j in range(c):
+            if -atol < Z[i,j] < atol:
+                Z[i,j] = 0.0
+        Z[i] += sum(Z[i])
+    return Z
+
+def cleanK(K, atol=1e-5):
+    r,c = K.shape
+    for i in range(r):
+        for j in range(c):
+            if -atol < K[i,j] < atol:
+                K[i,j] = 0.0
+        K[i] /= sum(K[i])
+    return K
+
+def cleanQ(Q, atol=1e-5):
+    r,c = Q.shape
+    for j in range(c):
+        for i in range(r):
+            if -atol < Q[i,j] < atol:
+                Q[i,j] = 0.0
+        Q[:, j] /= sum(Q[:, j])
+    return Q
+
+def getCabraMinZCloseW(n, m, t=1.0, beta=None, verbose=False, solverargs={}, atol=1e-5, **kwargs):
     if beta is None:
         beta = ones(m)
     Z, W, Q, K, cons = getCabra(n, m, beta=beta, **kwargs)
@@ -148,22 +169,9 @@ def getCabraMinZCloseW(n, m, t=1.0, beta=None, verbose=False, solverargs={}, **k
     prob = cvx.Problem(obj, cons)
     prob.solve(verbose=(verbose==2), **solverargs)
     
-    if m > 0:
-        Qv = Q.value
-        Kv = K.value
-        U = getU(Qv, Kv, beta)
-    else:
-        U = Qv = Kv = None
-    if verbose > 0:
-        print('Z', Z.value)
-        print('W', W.value)
-        if m > 0:
-            print('Q', Qv)
-            print('K', Kv)
-            print('U', U)
-    return Z.value, W.value, Qv, Kv, U
+    return postProcess(m, beta, Z, W, Q, K, atol, verbose)
 
-def getCabraMinZD(n, m, D=None, alpha=None, beta=None, verbose=False, solverargs={}, **kwargs):
+def getCabraMinZD(n, m, D=None, alpha=None, beta=None, verbose=False, solverargs={}, atol=1e-5, **kwargs):
     
     if beta is None:
         beta = ones(m)
@@ -178,16 +186,9 @@ def getCabraMinZD(n, m, D=None, alpha=None, beta=None, verbose=False, solverargs
     prob = cvx.Problem(obj, cons)
     prob.solve(verbose=(verbose==2), **solverargs)
     
-    U = getU(Q.value, K.value, beta)
-    if verbose > 0:
-        print('Z', Z.value)
-        print('W', W.value)
-        print('U', U)
-        print('Q', Q.value)
-        print('K', K.value)
-    return Z.value, W.value, Q.value, K.value, U
+    return postProcess(m, beta, Z, W, Q, K, atol, verbose)
 
-def getCabraTightW(n, m, beta=None, verbose=False, solverargs={}, **kwargs):
+def getCabraTightW(n, m, beta=None, verbose=False, solverargs={}, atol=1e-5, **kwargs):
     if beta is None:
         beta = ones(m)
     Z, W, Q, K, cons = getCabra(n, m, beta=beta, **kwargs)
@@ -197,16 +198,9 @@ def getCabraTightW(n, m, beta=None, verbose=False, solverargs={}, **kwargs):
     prob = cvx.Problem(obj, cons)
     prob.solve(verbose=(verbose==2), **solverargs)
     
-    U = getU(Q.value, K.value, beta)
-    if verbose > 0:
-        print(Z.value)
-        print(W.value)
-        print(K.value)
-        print(Q.value)
-        print(U)
-    return Z.value, W.value, Q.value, K.value, U
+    return postProcess(m, beta, Z, W, Q, K, atol, verbose)
 
-def getCabraTightZD(n, m, D, beta=None, verbose=0, solverargs={}, **kwargs):
+def getCabraTightZD(n, m, D, beta=None, verbose=0, solverargs={}, atol=1e-5, **kwargs):
     if beta is None:
         beta = ones(m)
     Z, W, Q, K, cons = getCabra(n, m, beta=beta, **kwargs)
@@ -217,18 +211,9 @@ def getCabraTightZD(n, m, D, beta=None, verbose=0, solverargs={}, **kwargs):
     prob = cvx.Problem(obj, cons)
     prob.solve(verbose=(verbose==2), **solverargs)
     
-    U = getU(Q.value, K.value, beta)
-    if verbose > 0:
-        print(prob.status)
-        print(prob.value)
-        print(Z.value)
-        print(W.value)
-        print(K.value)
-        print(Q.value)
-        print(U)
-    return Z.value, W.value, Q.value, K.value, U
+    return postProcess(m, beta, Z, W, Q, K, atol, verbose)
 
-def getCabraTightWD(n, m, D, beta=None, verbose=0, solverargs={}, **kwargs):
+def getCabraTightWD(n, m, D, beta=None, verbose=0, solverargs={}, atol=1e-5, **kwargs):
     if beta is None:
         beta = ones(m)
     Z, W, Q, K, cons = getCabra(n, m, **kwargs)
@@ -239,16 +224,7 @@ def getCabraTightWD(n, m, D, beta=None, verbose=0, solverargs={}, **kwargs):
     prob = cvx.Problem(obj, cons)
     prob.solve(verbose=(verbose==2), **solverargs)
     
-    U = getU(Q.value, K.value, beta)
-    if verbose > 0:
-        print(prob.status)
-        print(prob.value)
-        print(Z.value)
-        print(W.value)
-        print(K.value)
-        print(Q.value)
-        print(U)
-    return Z.value, W.value, Q.value, K.value, U
+    return postProcess(m, beta, Z, W, Q, K, atol, verbose)
 
 def trilc(Z):
     n = Z.shape[0]
@@ -258,7 +234,7 @@ def trilc(Z):
             L[i][j] = Z[i,j]
     return cvx.bmat(L)
 
-def getCabraClose(n, m=0, da=None, db=None, fixed_Z={}, fixed_W={}, fixed_Q={}, fixed_K={}, cutoffs=None, c=None, beta=None, alpha=0.5, LD=False, verbose=False, adj=False, QKnn=True):
+def getCabraClose(n, m=0, da=None, db=None, fixed_Z={}, fixed_W={}, fixed_Q={}, fixed_K={}, cutoffs=None, c=None, beta=None, alpha=0.5, atol=1e-5, LD=False, verbose=False, adj=False, QKnn=True):
     """
         Args:
         n (int): number of maximal monotone operators (resolvents)
@@ -337,32 +313,8 @@ def getCabraClose(n, m=0, da=None, db=None, fixed_Z={}, fixed_W={}, fixed_Q={}, 
         obj = cvx.Minimize(cvx.norm(Z - alpha*tgt))
     prob = cvx.Problem(obj, cons)
     prob.solve()
-    if m > 0:
-        Qv = Q.value
-        Kv = K.value
-        Uv = getU(Qv, Kv, beta)
-        tgt = tgt.value
-    else:
-        Qv = None
-        Kv = None
-        Uv = None
-    if not no_W:
-        Wv = W.value
-    else:
-        Wv = None
-    if verbose:
-        print(prob.status, prob.value)
-        print('tgt', alpha*tgt)
-        print('Z', Z.value)
-        if m > 0:
-            print('U', Uv)
-            print('K', Kv)
-            print('Q', Qv)
-        if not no_W:
-            print('W', Wv)
 
-    
-    return Z.value, Qv, Kv, Wv, Uv
+    return postProcess(m, beta, Z, W, Q, K, atol, verbose)
 
 def getU(Q, K, beta=None):
     if beta is None:

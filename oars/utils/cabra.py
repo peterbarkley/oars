@@ -139,12 +139,13 @@ class zeroConeCabra(baseProx):
 class cbLog:
     def __init__(self, n, m=0, verbose=False):
         self.xdata = [[] for _ in range(n)]  # Dictionary to store x values by iteration
-        self.vdata = [[] for _ in range(n)]  # Dictionary to store x values by iteration
-        self.bdata = [[] for _ in range(m)]  # Dictionary to store x values by iteration
+        self.vdata = [[] for _ in range(n)]  # Dictionary to store v values by iteration
+        self.bdata = [[] for _ in range(m)]  # Dictionary to store b values by iteration
+        self.ydata = [[] for _ in range(n)]  # Dictionary to store b values by iteration
         self.m = m
         self.verbose = verbose
         
-    def __call__(self, itr, x, v, b):
+    def __call__(self, itr, x, v, b, y=None):
         """
         Store x values for a given iteration.
 
@@ -158,6 +159,10 @@ class cbLog:
             varlogi.append(xi.copy())
         for varlogi, vi in zip(self.vdata, v):
             varlogi.append(vi.copy())
+        if y is not None:
+            for varlogi, yi in zip(self.ydata, y):
+                varlogi.append(yi.copy())
+
         if self.m != 0:
             for varlogi, bi in zip(self.bdata, b):
                 varlogi.append(bi.copy())
