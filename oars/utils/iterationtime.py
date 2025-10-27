@@ -77,7 +77,7 @@ def getIterationTime(t, l, Z, W, itrs=None):
     cycle_length = (s[itrs-1,n-1]-s[itrs-2,n-1]).value
     return cycle_length, s.value, X
 
-def getGantt(t, l, Z, W, title="Example", itrs=None):
+def getGantt(t, l, Z, W, title="Example", itrs=None, nodename="Node"):
     """
     Get Gantt chart for the parallel algorithm
 
@@ -112,7 +112,7 @@ def getGantt(t, l, Z, W, title="Example", itrs=None):
         for j in range(n): # Operations
             start = s[i,j]
             stop = start + t[j]
-            dflist.append(dict(Task="Iter %s" % (i+1), Start=start, Finish=stop, Resource="Node %s" % (j+1)))
+            dflist.append(dict(Task="Iter %s" % (i+1), Start=start, Finish=stop, Resource=nodename+" %s" % (j+1)))
     df = pd.DataFrame(dflist)
     df['delta'] = df['Finish'] - df['Start']
 

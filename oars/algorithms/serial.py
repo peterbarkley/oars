@@ -37,11 +37,9 @@ def serialAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdu
         >>> n = len(vals)
         >>> proxs = [quadprox]*n
         >>> Z, W = getFull(n)
-        >>> x, results = serialAlgorithm(n, data, proxs, W, Z, itrs=20, gamma=1.0, verbose=True)
+        >>> x, _,_,_ = serialAlgorithm(n, data, proxs, W, Z, itrs=20, gamma=1.0, verbose=True)
         >>> x
         [11.]
-        >>> results
-        [{'x': array([11.]), 'v': array([22.]), 'log': []}, {'x': array([11.]), 'v': array([13.66666667]), 'log': []}, {'x': array([11.]), 'v': array([4.33333333]), 'log': []}, {'x': array([11.]), 'v': array([-40.]), 'log': []}]
 
     """
     

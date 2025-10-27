@@ -22,23 +22,22 @@ def solve(n, data, resolvents, W=None, Z=None, parallel=False, **kwargs):
                 - verbose (bool): whether to print verbose output
 
     Returns:
-        x, results (ndarray, list): tuple with the solution and a list of dictionaries with the results for each resolvent
+        x (ndarray): resolvent.shape ndarray of the mean over the node solutions at termination
+        logs (list): list of n logs for the operators
+        all_x (ndarray): n x resolvent.shape ndarray of the node solution
+        all_v (ndarray): n x resolvent.shape ndarray of the consensus iterates at solution
 
     Examples:
-        >>> from oars.utils.proxs import quadprox
+        >>> from oars.utils.proxs import quadProx
         >>> from oars import solve
-        >>> from oars.matrices import getFull
         >>> import numpy as np
-        >>> vals = np.array([0, 1, 3, 40])
-        >>> n = len(vals)
-        >>> proxs = [quadprox]*n
-        >>> Z, W = getFull(n)
-        >>> x, results = solve(n, vals, proxs, W, Z, itrs=1000, vartol=1e-6, gamma=1.0)
-        Converged in objective value, iteration 13
+        >>> d = 2
+        >>> n = 3
+        >>> Q = [np.eye(d)]*n
+        >>> P = [np.array([1,1]), np.array([2,3]), np.array([3,2])]
+        >>> x, _, _, _ = solve(n, [{'Q': Q[i], 'P':P[i]} for i in range(n)], [quadProx for _ in range(n)])
         >>> x
-        10.999999999990674
-        >>> results
-        [{'x': 10.999999999906539, 'v': 22.00000000003744}, {'x': 11.000000000103075, 'v': 13.66666666663539}, {'x': 10.999999999962412, 'v': 4.333333333327117}, {'x': 10.999999999990674, 'v': -40.0}]
+        array([2., 2.])
         '''
 
     if parallel:
