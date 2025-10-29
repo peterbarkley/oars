@@ -63,7 +63,7 @@ def getFullVariable(x, A, PA):
 
 def caraAlgorithm(data, A, W, Z, warmstartprimal=None, warmstartdual=None, itrs=1001, gamma=1.0, alpha=1.0, verbose=False, callback=None):
     """
-    Run the coupled adaptive backward-forward-backward resolvent splitting algorithm in serial
+    Run the coupled adaptive resolvent splitting algorithm in serial
 
     Args:
         data (list): list of :math:`n` initialization dictionaries for A, each of which contains a varlist key with a list of variable indexes as its value

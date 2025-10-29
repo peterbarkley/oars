@@ -248,3 +248,8 @@ def getMaxConnectivity(p, z_weight=1.0, w_weight=1.0, verbose=False, **kwargs):
         print(Z.value)
 
     return postprocess(prob, Z.value, W.value, **kwargs)
+
+def getPH(p):
+
+    Z = np.diag(np.array(p)**(-1))
+    return Z - np.ones_like(Z)
