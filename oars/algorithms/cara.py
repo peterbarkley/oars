@@ -55,7 +55,7 @@ def getFullVariable(x, A, PA):
     y = []
     for k, PAk in enumerate(PA):
         if len(PAk) > 0:
-            ybar = np.mean([x[i][A[i].indices[k]] for i in PAk])
+            ybar = np.mean([x[i][A[i].indices[k]] for i in PAk], axis=0)
         else:
             ybar = 0.0
         y.append(ybar)
@@ -120,11 +120,11 @@ def caraAlgorithm(data, A, W, Z, warmstartprimal=None, warmstartdual=None, itrs=
         checkperiod = max(itrs//10,1)
     for itr in range(itrs):
         for i in range(nn):
-            all_x[i] = all_v[i].copy()
+            np.copyto(all_x[i],all_v[i])
             for (j, i_idxs, j_idxs, wt) in fdr[i]:
                 all_x[i][i_idxs] += all_x[j][j_idxs]*wt
             if verbose or callback is not None:
-                all_y[i] = all_x[i].copy()
+                np.copyto(all_y[i],all_x[i])
             all_x[i] = A[i].prox(all_x[i], alpha)
             
         if callback is not None and callback(itr, all_x, all_v, all_y, A): break

@@ -1,5 +1,6 @@
 import numpy as np
 from time import time
+from scipy.linalg import cho_factor, cho_solve
 
 def _log(func):
 
@@ -86,7 +87,32 @@ class halfspaceProjCabra():
         if t < 0.0:
             return Diy - t*(self.Dic)/self.cDc
         return Diy
+    
+class quadProxCabra():
+    """
+    warped prox of the function f(x) = 0.5 x^T Q x - P x
+    """
+    def __init__(self, Q, P, indices, varshapes, D=1.0, alpha=1.0, varlist=[0]):
+        self.Q = Q
+        self.P = P
+        if isinstance(D, float) or len(D) < len(P):
+            self.D = D*np.eye(varshapes[0])
+        self.alpha = alpha
+        self.aP = alpha*P
+        self.shape = P.shape
+        self.vars = varlist
+        self.varshapes = varshapes
+        self.cho = cho_factor(self.D + alpha*Q)
+        self.indices = indices
+    
 
+    def prox(self, y, alpha=1.0, tol=None):
+        if alpha != self.alpha:
+            self.alpha = alpha
+            self.cho = cho_factor(self.D + alpha*self.Q)
+            self.aP = alpha*self.P
+        
+        return cho_solve(self.cho, y+self.aP)
 
 class quadGradCabra():
     """

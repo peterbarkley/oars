@@ -9,9 +9,26 @@ def getVar(data):
     start = 0
     for k, klength in zip(data['varlist'], data['varshapes']):
         stop = start+klength
-        data['indices'][k] = np.arange(start, stop)
+        data['indices'][k] = range(start, stop)
         start = stop
     return np.zeros(stop)
+
+def getPermutedDiagonal(n, Z, PA):
+    """
+    Returns a permuted list taking the diagonals of the p Z_k entries in Z and returning them as a 
+    list of n vectors where PA[k] gives the ordered list of the matrices in n which use entry k
+
+    Args:
+        n (int): number of A operators
+        Z (list): list of :math:`p` Zk matrices with diagonal Dk
+        PA (list): list of :math:`p` ordered lists of operators which use variable k
+    """
+    DA = [[] for _ in range(n)]
+    for k, pk in enumerate(PA):
+        for idx, i in enumerate(pk):
+            DA[i].append(Z[k][idx, idx])
+    DA = [np.array(D) for D in DA]
+    return DA
 
 def getFeedersL(Z, PA, A, p):
     """
@@ -28,7 +45,7 @@ def getFeedersL(Z, PA, A, p):
             if len(sharedk) > 0:
                 i_idxs = [idx for k in sharedk for idx in A[i].indices[k]]
                 j_idxs = [idx for k in sharedk for idx in A[j].indices[k]]
-                wts = np.array([-2.0*p[j]*Z[k][PA[k].index(i), PA[k].index(j)] for k in sharedk for idx in A[i].indices[k]])
+                wts = np.array([-2.0*p[k][PA[k].index(j)]*Z[k][PA[k].index(i), PA[k].index(j)] for k in sharedk for idx in A[i].indices[k]])
                 fdrs[i].append((j, i_idxs, j_idxs, wts))
     return fdrs
 
@@ -47,7 +64,7 @@ def getFeedersW(W, PA, A, p):
             if len(sharedk) > 0:
                 i_idxs = [idx for k in sharedk for idx in A[i].indices[k]]
                 j_idxs = [idx for k in sharedk for idx in A[j].indices[k]]
-                wts = np.array([p[j]*W[k][PA[k].index(i), PA[k].index(j)] for k in sharedk for idx in A[i].indices[k]])
+                wts = np.array([p[k][PA[k].index(j)]*W[k][PA[k].index(i), PA[k].index(j)] for k in sharedk for idx in A[i].indices[k]])
                 fdrs[i].append((j, i_idxs, j_idxs, wts))
     return fdrs
 
@@ -61,15 +78,17 @@ def getFullVariable(x, A, PA):
         y.append(ybar)
     return y
 
-def redPhAlgorithm(p, data, A, W, Z, PA, warmstartprimal=None, warmstartdual=None, itrs=1001, gamma=1.0, alpha=1.0, verbose=False, callback=None):
+def redPhAlgorithm(p, data, A, W, Z, I, warmstartprimal=None, warmstartdual=None, itrs=1001, gamma=1.0, alpha=1.0, verbose=False, callback=None):
     """
     Run the adaptive reduced PH splitting algorithm in serial
 
     Args:
+        p (list): list of :math:`p` weight vectors
         data (list): list of :math:`n` initialization dictionaries for A, each of which contains a varlist key with a list of variable indexes as its value
         A (list): list of :math:`n` initializable maximal monotone operators callable via a prox function 
         W (list): list of :math:`p` between-iteration consensus ndarrays
         Z (list): list of :math:`p` within-iteration coordination ndarrays
+        I (list): list of :math:`p` lists giving the functions which use each variable
         warmstartprimal (dictionary, optional): dictionary with :math:`p` integer subvector ids as keys and primal estimate ndarrays as the value 
         warmstartdual (list, optional): list of length :math:`n` giving a dictionary for each resolvent with keys for each subvector id pertaining to that resolvent and values giving the subgradient estimate for that subvector in that resolvent. The sum of the subgradients over the resolvents for each subvector must be zero.
         itrs (int, optional): the number of iterations
@@ -91,9 +110,9 @@ def redPhAlgorithm(p, data, A, W, Z, PA, warmstartprimal=None, warmstartdual=Non
     pp = len(Z)
 
     # Initialize the variables
-    Ds = permute(n, Z, PA)
+    Ds = getPermutedDiagonal(nn, Z, I)
     for i in range(nn):
-        data[i]['D'] = p[i]*Ds[i]
+        data[i]['D'] = np.array([p[k][I[k].index(i)] for k in data[i]['varlist']])*Ds[i]
     all_x = [getVar(data[i]) for i in range(nn)]
     if warmstartdual is not None:
         all_v = warmstartdual
@@ -108,8 +127,8 @@ def redPhAlgorithm(p, data, A, W, Z, PA, warmstartprimal=None, warmstartdual=Non
     # Get feeders and weights
     gammaW = [gamma*Wk for Wk in W]
     # PA = getPA([Ai.vars for Ai in A], p)
-    fdr = getFeedersL(Z, PA, A, p)
-    wfdr = getFeedersW(gammaW, PA, A, p)
+    fdr = getFeedersL(Z, I, A, p)
+    wfdr = getFeedersW(gammaW, I, A, p)
 
     # Warm start primal
     if warmstartprimal is not None:
@@ -137,10 +156,10 @@ def redPhAlgorithm(p, data, A, W, Z, PA, warmstartprimal=None, warmstartdual=Non
         if verbose and itr % checkperiod == 0:
             ysqdiff = 0.0
             for k in range(pp):
-                if len(PA[k]) > 1:
-                    ybar = np.mean([all_x[i][A[i].indices[k]] for i in PA[k]], axis=0)
-                    ysqdiff += sum(np.linalg.norm(all_x[i][A[i].indices[k]] - ybar)**2 for i in PA[k])
-            subg_sum_norm = sum([np.linalg.norm(sum([p[i]*(all_y[i][A[i].indices[k]]-all_x[i][A[i].indices[k]]) for i in PA[k]]))**2 for k in range(pp)])**0.5
+                if len(I[k]) > 1:
+                    ybar = np.mean([all_x[i][A[i].indices[k]] for i in I[k]], axis=0)
+                    ysqdiff += sum(np.linalg.norm(all_x[i][A[i].indices[k]] - ybar)**2 for i in I[k])
+            subg_sum_norm = sum([np.linalg.norm(sum([p[k][I[k].index(i)]*(all_y[i][A[i].indices[k]]-all_x[i][A[i].indices[k]]) for i in I[k]]))**2 for k in range(pp)])**0.5
             print(f"{datetime.now()}\t{itr}\t{ysqdiff**0.5:.3e}\t{subg_sum_norm:.3e}")
 
         for i in range(nn):
@@ -148,7 +167,7 @@ def redPhAlgorithm(p, data, A, W, Z, PA, warmstartprimal=None, warmstartdual=Non
                 all_v[i][i_idxs] -= wt*all_x[j][j_idxs]
 
         
-    ybar = getFullVariable(all_x, A, PA)
+    ybar = getFullVariable(all_x, A, I)
     
     # Build logs list
     logs = []

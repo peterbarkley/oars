@@ -251,5 +251,49 @@ def getMaxConnectivity(p, z_weight=1.0, w_weight=1.0, verbose=False, **kwargs):
 
 def getPH(p):
 
-    Z = np.diag(np.array(p)**(-1))
-    return Z - np.ones_like(Z)
+    return getMix(p, np.ones((len(p), len(p))))
+
+def getMix(p, X):
+
+    Z = np.diag(np.array(p)**(-1)*(X@p))
+    return Z - X
+
+def getTwoBlock(p):
+
+    assert(len(p) % 2 == 0)
+    n = len(p)//2
+    Z = np.zeros((n,n))
+    O = np.ones((n,n))/n
+    X = np.block([[Z, O],
+                  [O, Z]])
+    return getMix(p, X)
+
+
+def testMatrices(p, Z, W):
+    """Test that Z and W are valid consensus and resolvent matrices with p"""
+
+    # Z sums to 0
+    assert(np.all(np.isclose(Z@p, 0)))
+    
+    # Z is symmetric
+    assert(np.all(np.isclose(Z, Z.T)))
+
+    # Z is PSD
+    assert(np.all(np.linalg.eigvals(Z) >= -1e-7))
+
+    # W is row stochastic
+    assert(np.all(np.isclose(W@p, 0)))
+
+    # W is symmetric
+    assert(np.all(np.isclose(W, W.T)))
+
+    # W is PSD
+    assert(np.all(np.linalg.eigvals(W) >= -1e-7))
+
+    # W second smallest eigenvalue is positive
+    assert(sorted(np.linalg.eigvals(W))[1] > 0) 
+
+    # Z - W is PSD
+    D = Z - W
+    v = np.linalg.eigvals(D)
+    assert(np.all(v >= -1e-7))
