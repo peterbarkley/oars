@@ -153,13 +153,13 @@ def redPhAlgorithm(p, data, A, W, Z, I, warmstartprimal=None, warmstartdual=None
             
         if callback is not None and callback(itr, all_x, all_v, all_y, A): break
 
-        if verbose and itr % checkperiod == 0:
+        if verbose and (itr+1) % checkperiod == 0:
             ysqdiff = 0.0
             for k in range(pp):
                 if len(I[k]) > 1:
                     ybar = np.mean([all_x[i][A[i].indices[k]] for i in I[k]], axis=0)
                     ysqdiff += sum(np.linalg.norm(all_x[i][A[i].indices[k]] - ybar)**2 for i in I[k])
-            subg_sum_norm = sum([np.linalg.norm(sum([p[k][I[k].index(i)]*(all_y[i][A[i].indices[k]]-all_x[i][A[i].indices[k]]) for i in I[k]]))**2 for k in range(pp)])**0.5
+            subg_sum_norm = sum([np.linalg.norm(sum([p[k][I[k].index(i)]*(all_y[i][A[i].indices[k]]-p[k][I[k].index(i)]*Z[k][I[k].index(i), I[k].index(i)]*all_x[i][A[i].indices[k]]) for i in I[k]]))**2 for k in range(pp)])**0.5
             print(f"{datetime.now()}\t{itr}\t{ysqdiff**0.5:.3e}\t{subg_sum_norm:.3e}")
 
         for i in range(nn):

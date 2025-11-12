@@ -129,7 +129,7 @@ def caraAlgorithm(data, A, W, Z, warmstartprimal=None, warmstartdual=None, itrs=
             
         if callback is not None and callback(itr, all_x, all_v, all_y, A): break
 
-        if verbose and itr % checkperiod == 0:
+        if verbose and (itr+1) % checkperiod == 0:
             ysqdiff = 0.0
             for k in range(p):
                 if len(PA[k]) > 1:
@@ -188,8 +188,8 @@ def constantCaraAlgorithm(data, A, W, Z, warmstartprimal=None, warmstartdual=Non
         A[i] = A[i](**data[i])
 
     # Initialize the variables
-    all_x = [getVar(A[i]) for i in range(n)] # length n list of length k_i \\leq p dict of ndarrays
-    all_v = [getVar(A[i]) for i in range(n)] # length n list of length k_i \\leq p dict of ndarrays
+    all_x = [getVar(data[i]) for i in range(n)] # length n list of length k_i \\leq p dict of ndarrays
+    all_v = [getVar(data[i]) for i in range(n)] # length n list of length k_i \\leq p dict of ndarrays
     if verbose or callback is not None:
         all_y = all_x.copy()
     gammaW = [gamma*Wk for Wk in W]

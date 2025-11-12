@@ -84,6 +84,36 @@ def getCore(p, fixed_Z={}, fixed_W={}, c=None, gamma=1.0, adj=False, **kwargs):
 
     return Z, W, t, cons    
 
+def getSmall(p, fixed_Z={}, c=None):
+    n = len(p)
+
+    if c is None:
+        c = 2*(1-np.cos(np.pi/n))
+
+    # Variables
+    t = cvx.Variable()
+    Z = cvx.Variable((n,n), symmetric=True)
+    nullmat = np.outer(p, p)/np.dot(p,p)
+    cons = [t >= c, # Connectivity constraint
+            Z >> t*(np.eye(n) - nullmat), # Fiedler value constraint   
+            Z@p == 0] # p in null space of Z
+
+    # Set fixed Z and W values
+    cons += [Z[idx] == val for idx,val in fixed_Z.items()]
+
+    return Z, t, cons    
+
+def getOneDiag(p, **kwargs):
+    n = len(p)
+    Z, t, cons = getSmall(p, **kwargs)
+    obj = cvx.Minimize(cvx.norm(cvx.diag(Z) - np.ones(n)))
+    prob = cvx.Problem(obj, cons)
+    prob.solve()
+
+    if prob.status == 'optimal':
+        return Z.value
+    return None
+
 def getIncidenceFixed(p, fixed):
     '''
     Converts fixed dictionary to incidence matrix
