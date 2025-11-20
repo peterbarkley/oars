@@ -79,10 +79,11 @@ def getFull(n, m=0, betas=None):
     U = (Q - K.T)@diag(betas)@(Q.T - K)
     return Z,W,U,Q,K
 
-def getFullCabra(n, m):
+# def getFullCabra(n, m):
     """
     Return matrix parameters Z, W, U, Q, K for the connected graph
     """
+
     
 def getCaraFull(n):
     X = -ones((n,n))

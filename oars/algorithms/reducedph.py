@@ -140,7 +140,7 @@ def redPhAlgorithm(p, data, A, W, Z, I, warmstartprimal=None, warmstartdual=None
 
     # Run the algorithm
     if verbose: 
-        print('date\t\ttime\t\titr\t||x-bar(x)||\t||sum dual||')
+        print('date\t\ttime\t\titr\t||x-bar(x)||\t||x-bar(x)||_Q\t||sum dual||')
         checkperiod = max(itrs//10,1)
     for itr in range(itrs):
         for i in range(nn):
@@ -155,12 +155,14 @@ def redPhAlgorithm(p, data, A, W, Z, I, warmstartprimal=None, warmstartdual=None
 
         if verbose and (itr+1) % checkperiod == 0:
             ysqdiff = 0.0
+            wt_sqdiff = 0.0
             for k in range(pp):
                 if len(I[k]) > 1:
                     ybar = np.mean([all_x[i][A[i].indices[k]] for i in I[k]], axis=0)
                     ysqdiff += sum(np.linalg.norm(all_x[i][A[i].indices[k]] - ybar)**2 for i in I[k])
+                    wt_sqdiff +=sum(p[k][I[k].index(i)]*np.linalg.norm(all_x[i][A[i].indices[k]] - ybar)**2 for i in I[k])
             subg_sum_norm = sum([np.linalg.norm(sum([p[k][I[k].index(i)]*(all_y[i][A[i].indices[k]]-p[k][I[k].index(i)]*Z[k][I[k].index(i), I[k].index(i)]*all_x[i][A[i].indices[k]]) for i in I[k]]))**2 for k in range(pp)])**0.5
-            print(f"{datetime.now()}\t{itr}\t{ysqdiff**0.5:.3e}\t{subg_sum_norm:.3e}")
+            print(f"{datetime.now()}\t{itr}\t{ysqdiff**0.5:.3e}\t{wt_sqdiff**0.5:.3e}\t{subg_sum_norm:.3e}")
 
         for i in range(nn):
             for (j, i_idxs, j_idxs, wt) in wfdr[i]:
