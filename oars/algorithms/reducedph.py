@@ -132,11 +132,14 @@ def redPhAlgorithm(p, data, A, W, Z, I, warmstartprimal=None, warmstartdual=None
 
     # Warm start primal
     if warmstartprimal is not None:
-        print('Not implemented!')
-        return 0
-        # for k, v in warmstartprimal.items():
-        #     for idx, i in enumerate(PA[k]):
-        #         all_v[i][A[i].indices[k]] = (1.0 + 2.0*np.sum(Z[k][idx,:idx]))*v
+        for k, xk in warmstartprimal.items():
+            for idx, i in enumerate(I[k]):
+                all_v[i][A[i].indices[k]] = (2.0*np.dot(Z[k][idx,:idx],p[k][:idx]) + Z[k][idx,idx]*p[k][idx])*xk
+
+    if warmstartdual is not None:
+        for i in range(nn):
+            for k in A[i].vars:
+                all_v[i][k] += warmstartdual[i][k]
 
     # Run the algorithm
     if verbose: 
@@ -153,22 +156,15 @@ def redPhAlgorithm(p, data, A, W, Z, I, warmstartprimal=None, warmstartdual=None
             
         if callback is not None and callback(itr, all_x, all_v, all_y, A): break
 
-        if verbose and (itr+1) % checkperiod == 0:
-            ysqdiff = 0.0
-            wt_sqdiff = 0.0
-            for k in range(pp):
-                if len(I[k]) > 1:
-                    ybar = np.mean([all_x[i][A[i].indices[k]] for i in I[k]], axis=0)
-                    ysqdiff += sum(np.linalg.norm(all_x[i][A[i].indices[k]] - ybar)**2 for i in I[k])
-                    wt_sqdiff +=sum(p[k][I[k].index(i)]*np.linalg.norm(all_x[i][A[i].indices[k]] - ybar)**2 for i in I[k])
-            subg_sum_norm = sum([np.linalg.norm(sum([p[k][I[k].index(i)]*(all_y[i][A[i].indices[k]]-p[k][I[k].index(i)]*Z[k][I[k].index(i), I[k].index(i)]*all_x[i][A[i].indices[k]]) for i in I[k]]))**2 for k in range(pp)])**0.5
-            print(f"{datetime.now()}\t{itr}\t{ysqdiff**0.5:.3e}\t{wt_sqdiff**0.5:.3e}\t{subg_sum_norm:.3e}")
+        if verbose and (itr) % checkperiod == 0:
+            printMetrics(all_x, all_y, pp, p, I, itr, A, Z)
 
         for i in range(nn):
             for (j, i_idxs, j_idxs, wt) in wfdr[i]:
                 all_v[i][i_idxs] -= wt*all_x[j][j_idxs]
 
-        
+    if verbose:
+        printMetrics(all_x, all_y, pp, p, I, itr, A, Z)    
     ybar = getFullVariable(all_x, A, I)
     
     # Build logs list
@@ -181,3 +177,14 @@ def redPhAlgorithm(p, data, A, W, Z, I, warmstartprimal=None, warmstartdual=None
 
     return ybar, logs, all_x, all_v
 
+def printMetrics(all_x, all_y, pp, p, I, itr, A, Z):
+    
+        ysqdiff = 0.0
+        wt_sqdiff = 0.0
+        for k in range(pp):
+            if len(I[k]) > 1:
+                ybar = np.mean([all_x[i][A[i].indices[k]] for i in I[k]], axis=0)
+                ysqdiff += sum(np.linalg.norm(all_x[i][A[i].indices[k]] - ybar)**2 for i in I[k])
+                wt_sqdiff +=sum(p[k][I[k].index(i)]*np.linalg.norm(all_x[i][A[i].indices[k]] - ybar)**2 for i in I[k])
+        subg_sum_norm = sum([np.linalg.norm(sum([p[k][I[k].index(i)]*(all_y[i][A[i].indices[k]]-p[k][I[k].index(i)]*Z[k][I[k].index(i), I[k].index(i)]*all_x[i][A[i].indices[k]]) for i in I[k]]))**2 for k in range(pp)])**0.5
+        print(f"{datetime.now()}\t{itr}\t{ysqdiff**0.5:.3e}\t{wt_sqdiff**0.5:.3e}\t{subg_sum_norm:.3e}")

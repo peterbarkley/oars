@@ -112,7 +112,7 @@ def caraAlgorithm(data, A, W, Z, warmstartprimal=None, warmstartdual=None, itrs=
     if warmstartprimal is not None:
         for k, v in warmstartprimal.items():
             for idx, i in enumerate(PA[k]):
-                all_v[i][A[i].indices[k]] = (1.0 + 2.0*np.sum(Z[k][idx,:idx]))*v
+                all_v[i][A[i].indices[k]] = (Z[k][idx,:idx] + 2.0*np.sum(Z[k][idx,:idx]))*v
 
     # Run the algorithm
     if verbose: 
@@ -135,7 +135,7 @@ def caraAlgorithm(data, A, W, Z, warmstartprimal=None, warmstartdual=None, itrs=
                 if len(PA[k]) > 1:
                     ybar = np.mean([all_x[i][A[i].indices[k]] for i in PA[k]], axis=0)
                     ysqdiff += sum(np.linalg.norm(all_x[i][A[i].indices[k]] - ybar)**2 for i in PA[k])
-            subg_sum_norm = sum([np.linalg.norm(sum([all_y[i][A[i].indices[k]]-all_x[i][A[i].indices[k]] for i in PA[k]]))**2 for k in range(p)])**0.5
+            subg_sum_norm = sum([np.linalg.norm(sum([all_y[i][A[i].indices[k]]-Z[k][PA[k].index(i), PA[k].index(i)]*all_x[i][A[i].indices[k]] for i in PA[k]]))**2 for k in range(p)])**0.5
             print(f"{datetime.now()}\t{itr}\t{ysqdiff**0.5:.3e}\t{subg_sum_norm:.3e}")
 
         for i in range(nn):
@@ -198,11 +198,11 @@ def constantCaraAlgorithm(data, A, W, Z, warmstartprimal=None, warmstartdual=Non
     PA = getPA([Ai.vars for Ai in A], p)
     fdr = getFeedersL(n, Z, PA)
 
-    # Warm start -- to do!
+    # Warm start
     if warmstartprimal is not None:
-        for k, v in warmstartprimal.items():
+        for k, xk in warmstartprimal.items():
             for idx, i in enumerate(PA[k]):
-                all_v[i][k] = (1.0 + 2.0*np.sum(Z[k][idx,:idx]))*v
+                all_v[i][k] = (1.0 + 2.0*np.sum(Z[k][idx,:idx]))*xk
     if warmstartdual is not None:
         for i in range(n):
             for k in A[i].vars:
@@ -225,13 +225,13 @@ def constantCaraAlgorithm(data, A, W, Z, warmstartprimal=None, warmstartdual=Non
         if callback is not None and callback(itr, all_x, all_v, all_y): break
 
         if verbose and itr % checkperiod == 0:
-            ysqdiff = 0.0
+            sqdiff = 0.0
             for k in range(p):
                 if len(PA[k]) > 1:
-                    ybar = np.mean([all_x[i][k] for i in PA[k]], axis=0)
-                    ysqdiff += sum(np.linalg.norm(all_x[i][k] - ybar)**2 for i in PA[k])
+                    xbar = np.mean([all_x[i][k] for i in PA[k]], axis=0)
+                    sqdiff += sum(np.linalg.norm(all_x[i][k] - xbar)**2 for i in PA[k])
             subg_sum_norm = sum([sum([all_y[i][k]-all_x[i][k] for i in PA[k]])**2 for k in range(p)])**0.5
-            print(f"{datetime.now()}\t{itr}\t{ysqdiff**0.5:.3e}\t{subg_sum_norm:.3e}")
+            print(f"{datetime.now()}\t{itr}\t{sqdiff**0.5:.3e}\t{subg_sum_norm:.3e}")
 
         for i in range(n):
             for k in A[i].vars:
