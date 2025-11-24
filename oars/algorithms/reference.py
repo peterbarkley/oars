@@ -209,13 +209,44 @@ def p_extra(data, A, W, bar_W=None, itrs=1001, alpha=1.0, warmstartprimal=None, 
     return x, logs, x_one
 
 
-def progressiveHedgingAlgorithm(p, data, A, I, varshapes, alpha=1.0, itrs=1001, verbose=False, callback=None):
-    num_subvectors = len(p)
+def progressiveHedgingAlgorithm(q, data, A, I, varshapes, warmstartprimal=None, warmstartdual=None, alpha=1.0, itrs=1001, verbose=False, callback=None):
+    """
+    Run the Progressive Hedging splitting algorithm in serial
+
+    Args:
+        q (list): list of :math:`p` weight vectors
+        data (list): list of :math:`n` initialization dictionaries for A, each of which contains a varlist entry with a list of variable indexes as its value and a varshapes entry with the length of each variable
+        A (list): list of :math:`n` initializable maximal monotone operators callable via a prox function 
+        I (list): list of :math:`p` lists giving the functions which use each variable
+        varshapes (list): list of :math:`p` integer lengths for the variables
+        warmstartprimal (dictionary, optional): dictionary with :math:`p` integer subvector ids as keys and primal estimate ndarrays as the value 
+        warmstartdual (list, optional): list of length :math:`n` giving a dictionary for each resolvent with keys for each subvector id pertaining to that resolvent and values giving the subgradient estimate for that subvector in that resolvent. The weighted sum of the subgradients over the resolvents for each subvector must be zero.
+        itrs (int, optional): the number of iterations
+        alpha (float, optional): the scaling parameter
+        verbose (bool, optional): True for verbose output
+        callback (function, optional): callback function with signature (itr, all_x, all_v, all_y, xbar, A)
+
+    Returns:
+        xbar (list): list of :math:`p` mean values of the subvectors over the node solutions at termination
+        logs (list): list of n logs for the operators
+        all_x (list): list of :math:`n` ndarrays of the node solutions
+        all_v (list): list of :math:`n` ndarrays of the node consensus iterates at solution
+
+    Examples:
+    """
+    num_subvectors = len(q)
     num_functs = len(data)
 
     all_x = [getVar(data[i]) for i in range(num_functs)]
-    all_v = [all_x[i].copy() for i in range(num_functs)]
-    xbar = [np.zeros(shape) for shape in varshapes]
+    if warmstartdual is None:
+        all_v = [all_x[i].copy() for i in range(num_functs)]
+    else: 
+        all_v = warmstartdual
+    
+    if warmstartprimal is None:
+        xbar = [np.zeros(shape) for shape in varshapes]
+    else:
+        xbar = warmstartprimal
 
     if verbose or callback is not None:
         all_y = [all_x[i].copy() for i in range(num_functs)]
@@ -246,18 +277,18 @@ def progressiveHedgingAlgorithm(p, data, A, I, varshapes, alpha=1.0, itrs=1001, 
                 if len(I[k]) > 1:
                     ybar = np.mean([all_x[i][A[i].indices[k]] for i in I[k]], axis=0)
                     ysqdiff += sum(np.linalg.norm(all_x[i][A[i].indices[k]] - ybar)**2 for i in I[k])
-            subg_sum_norm = sum([np.linalg.norm(sum([(p[k][I[k].index(i)]/alpha)*(all_y[i][A[i].indices[k]]-all_x[i][A[i].indices[k]]) for i in I[k]]))**2 for k in range(num_subvectors)])**0.5
+            subg_sum_norm = sum([np.linalg.norm(sum([(q[k][I[k].index(i)]/alpha)*(all_y[i][A[i].indices[k]]-all_x[i][A[i].indices[k]]) for i in I[k]]))**2 for k in range(num_subvectors)])**0.5
             print(f"{datetime.now()}\t{itr}\t{ysqdiff**0.5:.3e}\t{subg_sum_norm:.3e}")
 
         for k in range(num_subvectors):
-            xbar[k] = sum(p[k][I[k].index(i)]*all_x[i][A[i].indices[k]] for i in I[k])
+            xbar[k] = sum(q[k][I[k].index(i)]*all_x[i][A[i].indices[k]] for i in I[k])
 
         for i in range(num_functs):
             for k in A[i].vars:
                 all_v[i][A[i].indices[k]] += (1/alpha)*(all_x[i][A[i].indices[k]] - xbar[k])
 
         
-    ybar = getFullVariable(all_x, A, I)
+    xbar = getFullVariable(all_x, A, I)
     
     # Build logs list
     logs = []
@@ -267,4 +298,4 @@ def progressiveHedgingAlgorithm(p, data, A, I, varshapes, alpha=1.0, itrs=1001, 
         else:
             logs.append([])
 
-    return ybar, logs, all_x, all_v
+    return xbar, logs, all_x, all_v

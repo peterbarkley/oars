@@ -84,13 +84,13 @@ def redPhAlgorithm(p, data, A, W, Z, I, warmstartprimal=None, warmstartdual=None
 
     Args:
         p (list): list of :math:`p` weight vectors
-        data (list): list of :math:`n` initialization dictionaries for A, each of which contains a varlist key with a list of variable indexes as its value
+        data (list): list of :math:`n` initialization dictionaries for A, each of which contains a varlist entry with a list of variable indexes as its value and a varshapes entry with the length of each variable
         A (list): list of :math:`n` initializable maximal monotone operators callable via a prox function 
         W (list): list of :math:`p` between-iteration consensus ndarrays
         Z (list): list of :math:`p` within-iteration coordination ndarrays
         I (list): list of :math:`p` lists giving the functions which use each variable
         warmstartprimal (dictionary, optional): dictionary with :math:`p` integer subvector ids as keys and primal estimate ndarrays as the value 
-        warmstartdual (list, optional): list of length :math:`n` giving a dictionary for each resolvent with keys for each subvector id pertaining to that resolvent and values giving the subgradient estimate for that subvector in that resolvent. The sum of the subgradients over the resolvents for each subvector must be zero.
+        warmstartdual (list, optional): list of length :math:`n` giving a dictionary for each resolvent with keys for each subvector id pertaining to that resolvent and values giving the subgradient estimate for that subvector in that resolvent. The weighted sum of the subgradients over the resolvents for each subvector must be zero.
         itrs (int, optional): the number of iterations
         gamma (float, optional): parameter in (0,2) for :math:`v^{k+1} = v^k - \\gamma W x^k`
         alpha (float, optional): the positive resolvent step size in :math:`x^{k+1} = J_{\\alpha A_i}(y^k)`
