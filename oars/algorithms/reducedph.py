@@ -134,12 +134,12 @@ def redPhAlgorithm(p, data, A, W, Z, I, warmstartprimal=None, warmstartdual=None
     if warmstartprimal is not None:
         for k, xk in warmstartprimal.items():
             for idx, i in enumerate(I[k]):
-                all_v[i][A[i].indices[k]] = (2.0*np.dot(Z[k][idx,:idx],p[k][:idx]) + Z[k][idx,idx]*p[k][idx])*xk
+                all_v[i][A[i].indices[k]] += (2.0*np.dot(Z[k][idx,:idx],p[k][:idx]) + Z[k][idx,idx]*p[k][idx])*xk
 
-    if warmstartdual is not None:
-        for i in range(nn):
-            for k in A[i].vars:
-                all_v[i][k] += warmstartdual[i][k]
+    # if warmstartdual is not None:
+    #     for i in range(nn):
+    #         for k in A[i].vars:
+    #             all_v[i][k] += warmstartdual[i][k]
 
     # Run the algorithm
     if verbose: 
