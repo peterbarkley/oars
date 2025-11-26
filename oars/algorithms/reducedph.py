@@ -188,3 +188,15 @@ def printMetrics(all_x, all_y, pp, p, I, itr, A, Z):
                 wt_sqdiff +=sum(p[k][I[k].index(i)]*np.linalg.norm(all_x[i][A[i].indices[k]] - ybar)**2 for i in I[k])
         subg_sum_norm = sum([np.linalg.norm(sum([p[k][I[k].index(i)]*(all_y[i][A[i].indices[k]]-p[k][I[k].index(i)]*Z[k][I[k].index(i), I[k].index(i)]*all_x[i][A[i].indices[k]]) for i in I[k]]))**2 for k in range(pp)])**0.5
         print(f"{datetime.now()}\t{itr}\t{ysqdiff**0.5:.3e}\t{wt_sqdiff**0.5:.3e}\t{subg_sum_norm:.3e}")
+
+class reducedPhCallback():
+
+    def __init__(self, n):
+        self.all_x = [[] for _ in range(n)]
+        self.all_v = [[] for _ in range(n)]
+
+    def __call__(self, itr, all_x, all_v, all_y, A):
+        for i, xi in enumerate(all_x):
+            self.all_x[i].append(xi.copy())
+        for i, vi in enumerate(all_v):
+            self.all_v[i].append(vi.copy())
