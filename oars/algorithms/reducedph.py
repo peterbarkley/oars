@@ -49,7 +49,7 @@ def getFeedersL(Z, PA, A, p):
                 fdrs[i].append((j, i_idxs, j_idxs, wts))
     return fdrs
 
-def getFeedersW(W, PA, A, p):
+def getFeedersWOld(W, PA, A, p):
     """
     Return a length len(A) list of lists where the fdr[i] contains entries such that j and i share some k and W[k][s(i,k), s(j,k)] != 0
     Entries are of the form (j, i_idxs, j_idxs, wt) where j is the index of the operator, i_idxs gives the indices in x[i] of the shared variables, j_idxs gives the indices in x[j] of the shared variables, and wt gives the set of weights W[k][s(i,k), s(j,k)] of the appropriate varlength for the ordered shared variables k 
@@ -67,6 +67,27 @@ def getFeedersW(W, PA, A, p):
                 wts = np.array([p[k][PA[k].index(j)]*W[k][PA[k].index(i), PA[k].index(j)] for k in sharedk for idx in A[i].indices[k]])
                 fdrs[i].append((j, i_idxs, j_idxs, wts))
     return fdrs
+
+def getFeedersW(W, I, A, p):
+    """
+    Return a length len(A) list of lists where the fdr[i] contains entries such that j and i share some k and W[k][s(i,k), s(j,k)] != 0
+    Entries are of the form (j, i_idxs, j_idxs, wt) where j is the index of the operator, i_idxs gives the indices in x[i] of the shared variables, j_idxs gives the indices in x[j] of the shared variables, and wt gives the set of weights W[k][s(i,k), s(j,k)] of the appropriate varlength for the ordered shared variables k 
+    """
+    n = len(A)
+    fdrs = [[] for _ in range(n)]
+    for i in range(n):
+        possFeeders = {j for k in A[i].vars for j in I[k] }
+        for j in possFeeders:
+            sharedk = set(A[i].vars) & set(A[j].vars)
+            nonzerok = {k for k in sharedk if not np.isclose(W[k][I[k].index(i), I[k].index(j)], 0.0)}
+            # sharedk = sorted(sharedk & nonzerok)
+            if len(nonzerok) > 0:
+                i_idxs = [idx for k in sharedk for idx in A[i].indices[k]]
+                j_idxs = [idx for k in sharedk for idx in A[j].indices[k]]
+                wts = np.array([p[k][I[k].index(j)]*W[k][I[k].index(i), I[k].index(j)] for k in sharedk for idx in A[i].indices[k]])
+                fdrs[i].append((j, i_idxs, j_idxs, wts))
+    return fdrs
+
 
 def getFullVariable(x, A, PA):
     y = []
