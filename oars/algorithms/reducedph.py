@@ -214,10 +214,13 @@ class reducedPhCallback():
 
     def __init__(self, n):
         self.all_x = [[] for _ in range(n)]
+        self.all_y = [[] for _ in range(n)]
         self.all_v = [[] for _ in range(n)]
 
     def __call__(self, itr, all_x, all_v, all_y, A):
-        for i, xi in enumerate(all_x):
-            self.all_x[i].append(xi.copy())
-        for i, vi in enumerate(all_v):
-            self.all_v[i].append(vi.copy())
+        for i, val in enumerate(all_x):
+            self.all_x[i].append(val.copy())
+        for i, val in enumerate(all_v):
+            self.all_v[i].append(val.copy())
+        for i, val in enumerate(all_y):
+            self.all_y[i].append(val.copy())
