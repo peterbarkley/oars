@@ -279,6 +279,10 @@ def getMaxConnectivity(p, z_weight=1.0, w_weight=1.0, verbose=False, **kwargs):
 
     return postprocess(prob, Z.value, W.value, **kwargs)
 
+def getOnes(dim):
+    '''Returns a matrix with 1 on the diagonal and -1/(n-1) elsewhere'''
+    return (np.eye(dim)*(dim) - np.ones((dim, dim)))/(dim-1)
+
 def getPH(p):
 
     return getMix(p, np.ones((len(p), len(p))))

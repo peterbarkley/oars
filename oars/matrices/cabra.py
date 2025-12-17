@@ -5,6 +5,7 @@ import cvxpy as cvx
 from .core import getIncidenceFixed, getMfromWCholesky
 from scipy.linalg import sqrtm
 
+
 def getCabra(n, m, fixed_Z={}, fixed_W={}, fixed_Q={}, fixed_K={}, cutoffs=None, beta=None, c=None, adj=False, **kwargs):
     '''
     Get core variables and constraints for the algorithm design SDP

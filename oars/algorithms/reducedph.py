@@ -134,6 +134,7 @@ def redPhAlgorithm(p, data, A, W, Z, I, warmstartprimal=None, warmstartdual=None
     Ds = getPermutedDiagonal(nn, Z, I)
     for i in range(nn):
         data[i]['D'] = np.array([p[k][I[k].index(i)] for k in data[i]['varlist']])*Ds[i]
+        # print(data[i]['D'])
     all_x = [getVar(data[i]) for i in range(nn)]
     if warmstartdual is not None:
         all_v = warmstartdual
@@ -170,12 +171,13 @@ def redPhAlgorithm(p, data, A, W, Z, I, warmstartprimal=None, warmstartdual=None
         for i in range(nn):
             np.copyto(all_x[i],all_v[i])
             for (j, i_idxs, j_idxs, wt) in fdr[i]:
+                # print(i, j, i_idxs, j_idxs, wt)
                 all_x[i][i_idxs] += all_x[j][j_idxs]*wt
             if verbose or callback is not None:
                 np.copyto(all_y[i],all_x[i])
             all_x[i] = A[i].prox(all_x[i], alpha)
             
-        if callback is not None and callback(itr, all_x, all_v, all_y, A): break
+        if callback is not None and callback(itr=itr, all_x=all_x, all_v=all_v, all_y=all_y, A=A): break
 
         if verbose and (itr) % checkperiod == 0:
             printMetrics(all_x, all_y, pp, p, I, itr, A, Z)
@@ -188,15 +190,8 @@ def redPhAlgorithm(p, data, A, W, Z, I, warmstartprimal=None, warmstartdual=None
         printMetrics(all_x, all_y, pp, p, I, itr, A, Z)    
     ybar = getFullVariable(all_x, A, I)
     
-    # Build logs list
-    logs = []
-    for i in range(nn):
-        if hasattr(A[i], 'log'):
-            logs.append(A[i].log)
-        else:
-            logs.append([])
 
-    return ybar, logs, all_x, all_v
+    return ybar, all_x, all_v
 
 def printMetrics(all_x, all_y, pp, p, I, itr, A, Z):
     

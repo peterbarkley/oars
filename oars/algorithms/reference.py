@@ -299,3 +299,214 @@ def progressiveHedgingAlgorithm(q, data, A, I, varshapes, warmstartprimal=None, 
             logs.append([])
 
     return xbar, logs, all_x, all_v
+
+
+def AphAlgorithm(pi, q, data, A, I, op_itr_rule=None, D=None, warmstartprimal=None, warmstartdual=None, alpha=1.0, gamma=1.0, itrs=1001, verbose=False, callback=None):
+    """
+    Run the Asynchronous Progressive Hedging splitting algorithm in serial
+
+    Args:
+        pi (list): list of :math:`n` probabilities for each scenario
+        q (list): list of :math:`p` weight vectors for each variable
+        data (list): list of :math:`n` initialization dictionaries for A, each of which contains a varlist entry with a list of variable indexes as its value
+        A (list): list of :math:`n` initializable operators callable via a prox function 
+        I (list): list of :math:`p` lists giving the operators which use each variable        op_itr_rule: a function to determine which resolvents to calculate in block itr (default is all)
+        D (arraylike, optional): list of :math:`p` scaling parameters for each variable
+        warmstartprimal (dictionary, optional): dictionary with :math:`p` integer subvector ids as keys and primal estimate ndarrays as the value 
+        warmstartdual (list, optional): list of length :math:`n` giving a dictionary for each resolvent with keys for each subvector id pertaining to that resolvent and values giving the subgradient estimate for that subvector in that resolvent. The weighted sum of the subgradients over the resolvents for each subvector must be zero.
+        itrs (int, optional): the number of iterations
+        alpha (float, optional): the scaling parameter
+        verbose (bool, optional): True for verbose output
+        callback (function, optional): callback function with signature (itr, all_x, all_v, all_y, xbar, A)
+
+    Returns:
+        xbar (list): list of :math:`p` mean values of the subvectors over the node solutions at termination
+        logs (list): list of n logs for the operators
+        all_x (list): list of :math:`n` ndarrays of the node solutions
+        all_v (list): list of :math:`n` ndarrays of the node consensus iterates at solution
+
+    Examples:
+    """
+    num_subvectors = len(q)
+    num_functs = len(data)
+
+    if D is None:
+        D = np.ones(len(I))
+    else:
+        for i in range(num_functs):
+            data[i]['D'] = np.array([D[k] for k in data[i]['varlist']])
+
+    # Initialize variables
+    
+    if warmstartprimal is None:
+        all_x = [np.zeros(len(data[i]['varlist'])) for i in range(num_functs)]
+        zbar = np.zeros(len(I))
+    else:
+        all_x = [np.array([warmstartprimal[k] for k in data[i]['varlist']]) for i in range(num_functs)]
+        zbar = warmstartprimal.copy()
+    u = [np.empty_like(xi) for xi in all_x]
+    xbar = np.zeros(len(I))
+    v = np.zeros(len(I))
+    phi = np.zeros(len(A))
+    if warmstartdual is None:
+        all_w = [np.zeros(len(data[i]['varlist'])) for i in range(num_functs)]
+    else: 
+        all_w = [wsdi.copy()/D[data[i]['varlist']] for i, wsdi in enumerate(warmstartdual)]
+    all_y = [all_w[i].copy() for i in range(num_functs)]
+    
+    tau, inner_product = 0, 0
+    for i in range(num_functs):
+        A[i] = A[i](**data[i])
+
+    if op_itr_rule is None:
+        op_itr_rule = lambda itr, **kwargs: range(num_functs)
+
+    # Run the algorithm
+    if verbose: 
+        print('date\t\ttime\t\titr\t||x-bar(x)||\t tau \t innerproduct')
+        checkperiod = max(itrs//10,1)
+    for itr in range(itrs):
+        bucket = op_itr_rule(itr=itr, all_x=all_x, all_w=all_w, all_y=all_y, xbar=xbar, zbar=zbar, u=u, v=v, tau=tau, inner_product=inner_product, A=A, phi=phi)
+        for i in bucket:
+            np.copyto(all_x[i],all_w[i])
+            all_x[i] *= -alpha
+            all_x[i] += zbar[A[i].vars]
+            all_x[i] *= D[A[i].vars]
+
+            all_x[i] = A[i].prox(all_x[i], alpha)
+            all_y[i] = all_w[i] + (all_x[i] - zbar[A[i].vars])/alpha
+            
+
+
+        for k in range(num_subvectors):
+            xbar[k] = sum(q[k][I[k].index(i)]*all_x[i][A[i].vars.index(k)] for i in I[k])
+            v[k] = sum(q[k][I[k].index(i)]*all_y[i][A[i].vars.index(k)] for i in I[k])
+            
+        for i in range(num_functs):
+            u[i] = all_x[i] - xbar[A[i].vars]
+
+        tau = sum(pi[i]*(np.linalg.norm(u[i])**2 + np.linalg.norm(v[A[i].vars])**2) for i in range(num_functs))
+
+        inner_product = 0
+        for i in range(num_functs):
+            phi[i] = pi[i]*np.dot(zbar[A[i].vars] - all_x[i], all_w[i] - all_y[i])
+            inner_product += phi[i]
+            
+        # inner_product = sum(pi[i]*np.dot(zbar[A[i].vars] - all_x[i], all_w[i] - all_y[i]) for i in range(num_functs) )
+        
+        if verbose and itr % checkperiod == 0:
+            xsqdiff = 0.0
+            for k in range(num_subvectors):
+                xsqdiff += sum(np.linalg.norm(all_x[i][A[i].vars.index(k)] - zbar[k])**2 for i in I[k])
+
+            print(f"{datetime.now()}\t{itr}\t{xsqdiff**0.5:.3e}\t{tau:.3e}\t{inner_product:.3e}")
+        if inner_product <= 0 or tau == 0.0: 
+            # print("skipping update", itr)
+            continue
+        theta = (gamma/tau)*inner_product
+
+
+        for k in range(num_subvectors):
+            zbar[k] += theta*v[k]
+        for i in range(num_functs):
+            all_w[i] += theta*u[i]
+
+        if callback is not None and callback(itr, all_x, all_w, all_y, xbar, zbar, u, v, tau, inner_product, theta, A): break
+
+    return xbar, all_x, all_w
+
+
+def diagonalPhAlgorithm(q, data, A, I, D=None, warmstartprimal=None, warmstartdual=None, alpha=1.0, itrs=1001, verbose=False, callback=None):
+    """
+    Run the Progressive Hedging splitting algorithm in serial
+
+    Args:
+        q (list): list of :math:`p` weight vectors
+        data (list): list of :math:`n` initialization dictionaries for A, each of which contains a varlist entry with a list of variable indexes as its value and a varshapes entry with the length of each variable
+        A (list): list of :math:`n` initializable maximal monotone operators callable via a prox function 
+        I (list): list of :math:`p` lists giving the functions which use each variable
+        D (arraylike): list of :math:`p` scaling parameters for each variable
+        varshapes (list): list of :math:`p` integer lengths for the variables
+        warmstartprimal (dictionary, optional): dictionary with :math:`p` integer subvector ids as keys and primal estimate ndarrays as the value 
+        warmstartdual (list, optional): list of length :math:`n` giving a dictionary for each resolvent with keys for each subvector id pertaining to that resolvent and values giving the subgradient estimate for that subvector in that resolvent. The weighted sum of the subgradients over the resolvents for each subvector must be zero.
+        itrs (int, optional): the number of iterations
+        alpha (float, optional): the scaling parameter
+        verbose (bool, optional): True for verbose output
+        callback (function, optional): callback function with signature (itr, all_x, all_v, all_y, xbar, A)
+
+    Returns:
+        xbar (list): list of :math:`p` mean values of the subvectors over the node solutions at termination
+        logs (list): list of n logs for the operators
+        all_x (list): list of :math:`n` ndarrays of the node solutions
+        all_v (list): list of :math:`n` ndarrays of the node consensus iterates at solution
+
+    Examples:
+    """
+    num_subvectors = len(q)
+    num_functs = len(data)
+
+    if D is None:
+        D = np.ones(len(I))
+    else:
+        for i in range(num_functs):
+            data[i]['D'] = np.array([D[k] for k in data[i]['varlist']])
+    all_x = [np.zeros(len(data[i]['varlist'])) for i in range(num_functs)]
+    if warmstartdual is None:
+        all_v = [all_x[i].copy() for i in range(num_functs)]
+    else: 
+        all_v = [wsdi.copy()/D[data[i]['varlist']] for i, wsdi in enumerate(warmstartdual)]
+    
+    if warmstartprimal is None:
+        xbar = np.zeros(len(I))
+    else:
+        xbar = warmstartprimal.copy()
+
+    if verbose or callback is not None:
+        all_y = [all_x[i].copy() for i in range(num_functs)]
+    for i in range(num_functs):
+        A[i] = A[i](**data[i])
+
+    
+    # Run the algorithm
+    if verbose: 
+        print('date\t\ttime\t\titr\t||x-bar(x)||\t||sum dual||')
+        checkperiod = max(itrs//10,1)
+    for itr in range(itrs):
+        for i in range(num_functs):
+            np.copyto(all_x[i],all_v[i])
+            all_x[i] *= -alpha
+            all_x[i] += xbar[A[i].vars]
+            all_x[i] *= D[A[i].vars]
+            if verbose or callback is not None:
+                np.copyto(all_y[i],all_x[i])
+            all_x[i] = A[i].prox(all_x[i], alpha)
+            
+        if callback is not None and callback(itr=itr, all_x=all_x, all_v=all_v, all_y=all_y, xbar=xbar, A=A): break
+
+        for k in range(num_subvectors):
+            xbar[k] = sum(q[k][I[k].index(i)]*all_x[i][A[i].vars.index(k)] for i in I[k])
+
+        if verbose and itr % checkperiod == 0:
+            ysqdiff = 0.0
+            for k in range(num_subvectors):
+                ysqdiff += sum(np.linalg.norm(all_x[i][A[i].vars.index(k)] - xbar[k])**2 for i in I[k])
+            subg_sum_norm = sum([np.linalg.norm(sum([(q[k][I[k].index(i)]/alpha)*(all_y[i][A[i].vars.index(k)]-D[k]*all_x[i][A[i].vars.index(k)]) for i in I[k]]))**2 for k in range(num_subvectors)])**0.5
+            print(f"{datetime.now()}\t{itr}\t{ysqdiff**0.5:.3e}\t{subg_sum_norm:.3e}")
+
+
+        for i in range(num_functs):
+            all_v[i] += (all_x[i] - xbar[A[i].vars])/alpha
+
+    return xbar, all_x, all_v
+
+
+class sequentialRule():
+
+    def __init__(self, n, batch_size):
+        self.n = n
+        self.stride = (n + batch_size - 1) // batch_size
+
+    def rule(self, itr, **kwargs):
+        if itr == 0: 
+            return range(self.n)
+        return range(itr%self.stride, self.n, self.stride)
