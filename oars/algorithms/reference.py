@@ -241,12 +241,12 @@ def progressiveHedgingAlgorithm(q, data, A, I, varshapes, warmstartprimal=None, 
     if warmstartdual is None:
         all_v = [all_x[i].copy() for i in range(num_functs)]
     else: 
-        all_v = warmstartdual
+        all_v = [wsdi.copy() for wsdi in warmstartdual]
     
     if warmstartprimal is None:
         xbar = [np.zeros(shape) for shape in varshapes]
     else:
-        xbar = warmstartprimal
+        xbar = warmstartprimal.copy()
 
     if verbose or callback is not None:
         all_y = [all_x[i].copy() for i in range(num_functs)]
@@ -269,7 +269,7 @@ def progressiveHedgingAlgorithm(q, data, A, I, varshapes, warmstartprimal=None, 
                 np.copyto(all_y[i],all_x[i])
             all_x[i] = A[i].prox(all_x[i], alpha)
             
-        if callback is not None and callback(itr, all_x, all_v, all_y, xbar, A): break
+        if callback is not None and callback(itr=itr, all_x=all_x, all_v=all_v, all_y=all_y, xbar=xbar, A=A): break
 
         if verbose and itr % checkperiod == 0:
             ysqdiff = 0.0
