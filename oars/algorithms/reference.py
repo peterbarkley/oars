@@ -449,7 +449,7 @@ def diagonalPhAlgorithm(q, data, A, I, D=None, warmstartprimal=None, warmstartdu
         D = np.ones(len(I))
     else:
         for i in range(num_functs):
-            data[i]['D'] = np.array([D[k] for k in data[i]['varlist']])
+            data[i]['D'] = D[ data[i]['varlist']]
     all_x = [np.zeros(len(data[i]['varlist'])) for i in range(num_functs)]
     if warmstartdual is None:
         all_v = [all_x[i].copy() for i in range(num_functs)]
@@ -476,7 +476,7 @@ def diagonalPhAlgorithm(q, data, A, I, D=None, warmstartprimal=None, warmstartdu
             np.copyto(all_x[i],all_v[i])
             all_x[i] *= -alpha
             all_x[i] += xbar[A[i].vars]
-            all_x[i] *= D[A[i].vars]
+            all_x[i] *= data[i]['D'] 
             if verbose or callback is not None:
                 np.copyto(all_y[i],all_x[i])
             all_x[i] = A[i].prox(all_x[i], alpha)
