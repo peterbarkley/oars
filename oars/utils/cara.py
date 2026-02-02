@@ -38,7 +38,7 @@ class warpedBoxProj():
     so 0 = c - v + (Q+D)x + \\lambda(x) where \\lambda_i < 0 only if x_i = 0, and \\lambda_i = 0 if x_i > 0, and x >= 0
     the solution is x_i = 0 if (v_i - \\alpha*c_i)/(\\alpha*q_i + d_i) <= 0, else x_i = (v_i - \\alpha*c_i)/(\\alpha*q_i + d_i)
     '''
-    def __init__(self, varlist, q=None, varshapes=None, indices=None, c=None, D=None, lower=None, upper=None, **kwargs):
+    def __init__(self, varlist, q=0., varshapes=None, indices=None, c=0., D=None, lower=0., upper=np.inf, **kwargs):
         '''
         Args:
             varlist (list): list of the variable indices
@@ -54,26 +54,14 @@ class warpedBoxProj():
             shape = len(varlist)
         else:
             shape = sum(varshapes)
-        if q is None:
-            self.q = np.zeros(shape)
-        else:
-            self.q = q
-        if c is None:
-            self.c = np.zeros(shape)
-        else:
-            self.c = c
         if D is None:
             self.d = np.ones(shape)
         else:
             self.d = D 
-        if upper is None:
-            self.upper = np.inf
-        else:
-            self.upper = upper
-        if lower is None:
-            self.lower = 0.
-        else:
-            self.lower = lower
+        self.q = q
+        self.c = c
+        self.lower = lower
+        self.upper = upper
         self.alpha = np.inf
         self.vars = varlist
         self.indices = indices
