@@ -144,16 +144,8 @@ def caraAlgorithm(data, A, W, Z, warmstartprimal=None, warmstartdual=None, itrs=
 
         
     ybar = getFullVariable(all_x, A, PA)
-    
-    # Build logs list
-    logs = []
-    for i in range(nn):
-        if hasattr(A[i], 'log'):
-            logs.append(A[i].log)
-        else:
-            logs.append([])
 
-    return ybar, logs, all_x, all_v
+    return ybar, all_x, all_v
 
 
 def constantCaraAlgorithm(data, A, W, Z, warmstartprimal=None, warmstartdual=None, itrs=1001, gamma=1.0, alpha=1.0, verbose=False, callback=None):
@@ -188,8 +180,8 @@ def constantCaraAlgorithm(data, A, W, Z, warmstartprimal=None, warmstartdual=Non
         A[i] = A[i](**data[i])
 
     # Initialize the variables
-    all_x = [getVar(data[i]) for i in range(n)] # length n list of length k_i \\leq p dict of ndarrays
-    all_v = [getVar(data[i]) for i in range(n)] # length n list of length k_i \\leq p dict of ndarrays
+    all_x = [getVar(data[i]) for i in range(n)] # length n list of ndarrays
+    all_v = [getVar(data[i]) for i in range(n)] # length n list of ndarrays
     if verbose or callback is not None:
         all_y = all_x.copy()
     gammaW = [gamma*Wk for Wk in W]

@@ -29,3 +29,58 @@ class quadProx():
             self.aP = alpha*self.P
         
         return cho_solve(self.cho, y+self.aP)
+    
+
+class warpedBoxProj():
+    '''Prox for box constraint indicator plus linear and diagonal quadratic at y
+    returns x = argmin_z \\alpha*(i_0(z) + c^T z + 0.5 * z^T Q z) - z^T y + 0.5 z^T D z)
+    where i_0 is the indicator function on the non-negative cone`
+    so 0 = c - v + (Q+D)x + \\lambda(x) where \\lambda_i < 0 only if x_i = 0, and \\lambda_i = 0 if x_i > 0, and x >= 0
+    the solution is x_i = 0 if (v_i - \\alpha*c_i)/(\\alpha*q_i + d_i) <= 0, else x_i = (v_i - \\alpha*c_i)/(\\alpha*q_i + d_i)
+    '''
+    def __init__(self, varlist, q=None, varshapes=None, indices=None, c=None, D=None, lower=None, upper=None, **kwargs):
+        '''
+        Args:
+            varlist (list): list of the variable indices
+            q (ndarray): 1 dimensional array diagonal of quadratic term (optional, default zeros)
+            varshapes (list): list of the lengths of the vectorized variables (optional, default ones)
+            indices (list): list of the indices of the variables in varlist in the prox variable array.
+            c (ndarray): array of the linear term (optional, default zeros)
+            D (ndarray): 1 dimensional array diagonal for warping projection (optional, default ones)
+            upper (ndarray): array of upper bounds (optional, default np.inf)
+        '''
+        if varshapes is None:
+            # varshapes = [1 for _ in varlist]
+            shape = len(varlist)
+        else:
+            shape = sum(varshapes)
+        if q is None:
+            self.q = np.zeros(shape)
+        else:
+            self.q = q
+        if c is None:
+            self.c = np.zeros(shape)
+        else:
+            self.c = c
+        if D is None:
+            self.d = np.ones(shape)
+        else:
+            self.d = D 
+        if upper is None:
+            self.upper = np.inf
+        else:
+            self.upper = upper
+        if lower is None:
+            self.lower = 0.
+        else:
+            self.lower = lower
+        self.alpha = np.inf
+        self.vars = varlist
+        self.indices = indices
+
+    def prox(self, y, alpha=1.0, D=None):
+        if alpha != self.alpha:
+            self.alphac = alpha*self.c
+            self.daq = self.d + alpha*self.q
+
+        return np.clip((y - self.alphac)/(self.daq), self.lower, self.upper, out=y)
