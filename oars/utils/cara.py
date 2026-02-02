@@ -50,7 +50,6 @@ class warpedBoxProj():
             upper (ndarray): array of upper bounds (optional, default np.inf)
         '''
         if varshapes is None:
-            # varshapes = [1 for _ in varlist]
             shape = len(varlist)
         else:
             shape = sum(varshapes)

@@ -7,7 +7,11 @@ from oars.matrices.core import ipf
 def getVar(data):
     data['indices'] = {}
     start = 0
-    for k, klength in zip(data['varlist'], data['varshapes']):
+    if 'varshapes' not in data:
+        vs =[1]*len(data['varlist'])
+    else:
+        vs = data['varshapes']
+    for k, klength in zip(data['varlist'], vs):
         stop = start+klength
         data['indices'][k] = np.arange(start, stop)
         start = stop
