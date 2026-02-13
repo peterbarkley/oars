@@ -84,7 +84,6 @@ def caraAlgorithm(data, A, W, Z, warmstartprimal=None, warmstartdual=None, itrs=
 
     Returns:
         x (list): list of :math:`p` mean values of the subvectors over the node solutions at termination
-        logs (list): list of n logs for the operators
         all_x (list): list of :math:`n` ndarrays of the node solutions
         all_v (list): list of :math:`n` ndarrays of the node consensus iterates at solution
 
@@ -114,9 +113,9 @@ def caraAlgorithm(data, A, W, Z, warmstartprimal=None, warmstartdual=None, itrs=
 
     # Warm start primal
     if warmstartprimal is not None:
-        for k, v in warmstartprimal.items():
+        for k, val in warmstartprimal.items():
             for idx, i in enumerate(PA[k]):
-                all_v[i][A[i].indices[k]] = (Z[k][idx,:idx] + 2.0*np.sum(Z[k][idx,:idx]))*v
+                all_v[i][A[i].indices[k]] = (Z[k][idx,idx] + 2.0*np.sum(Z[k][idx,:idx]))*val
 
     # Run the algorithm
     if verbose: 
