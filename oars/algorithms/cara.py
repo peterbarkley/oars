@@ -306,3 +306,112 @@ def getZs(data, mask):
             Zs.append(np.eye(nk) - ipf(AA))
             assert np.linalg.eigvalsh(Zs[-1])[1] > 0.0
     return Zs
+
+
+def caraStarAlgorithm(data, A, warmstartprimal=None, warmstartdual=None, itrs=1001, gamma=1.0, alpha=1.0, verbose=False, callback=None):
+    """
+    Run the coupled adaptive resolvent splitting algorithm with star matrices W=Z. 
+    Assumes the first operator is the center of the star.
+    Assumes the first operator contains all variables.
+
+    Args:
+        data (list): list of :math:`n` initialization dictionaries for A
+            each of which requires a varlist key with a list of variable indexes as its value. 
+            The first operator will need the D vector with its degree for each variable provided in the data.
+        A (list): list of :math:`n` initializable maximal monotone operators callable via a prox function. 
+        warmstartprimal (dictionary, optional): array with estimate of x_0 
+        warmstartdual (list, optional): list of length :math:`n` giving a dictionary for each resolvent with keys for each subvector id pertaining to that resolvent and values giving the subgradient estimate for that subvector in that resolvent. The sum of the subgradients over the resolvents for each subvector must be zero.
+        itrs (int, optional): the number of iterations
+        gamma (float, optional): parameter in (0,2) for :math:`v^{k+1} = v^k - \\gamma W x^k`
+        alpha (float, optional): the positive resolvent step size in :math:`x^{k+1} = J_{\\alpha A_i}(y^k)`
+        verbose (bool, optional): True for verbose output
+        callback (function, optional): callback function
+
+    Returns:
+        x (list): value of x_0 at termination
+        all_v (list): list of :math:`n` ndarrays of the node consensus iterates at solution
+
+    Examples:
+    """
+    # Initialize the operators
+    nn = len(data)
+    assert(len(A) == len(data))
+    vi = [] # variable indices
+    for di in data:
+        vi.append(di['varlist'])
+        
+    counts = data[0]['D'] + 1 # number of proxs for each variable
+
+    # Initialize the variables
+    all_x = [np.zeros(len(vi[i])) for i in range(nn)]
+    if warmstartdual is not None:
+        all_v = warmstartdual
+    else:
+        all_v = [all_x[i].copy() for i in range(nn)]
+    if verbose or callback is not None:
+        all_y = [all_x[i].copy() for i in range(nn)]
+    xbar = all_x[0].copy()
+    for i in range(nn):
+        A[i] = A[i](**data[i])
+
+    # Warm start primal
+    if warmstartprimal is not None:
+        all_v[0] += data[0]['D']*warmstartprimal
+        for i in range(1, nn):
+            all_v[i] -= warmstartprimal[vi[i]]
+
+    # Run the algorithm
+    if verbose: 
+        print('date\t\ttime\t\titr\t||x-bar(x)||\t||sum dual||')
+        checkperiod = max(itrs//10,1)
+    for itr in range(itrs):
+        # Prox loop
+        # First iterate (center of star)
+        np.copyto(all_x[0], all_v[0])
+        if verbose or callback is not None:
+            np.copyto(all_y[0],all_x[0])
+        all_x[0] = A[0].prox(all_x[0], alpha)
+
+        # Points of star
+        for i in range(1, nn):
+            np.copyto(all_x[i],all_x[0][vi[i]]) # Lx
+            all_x[i] *= 2
+            all_x[i] += all_v[i]
+            if verbose or callback is not None:
+                np.copyto(all_y[i],all_x[i])
+            all_x[i] = A[i].prox(all_x[i], alpha)
+            
+        if callback is not None and callback(itr, all_x, all_v, all_y, A): break
+
+        if verbose and (itr+1) % checkperiod == 0:
+            # Norm of the sum of the differences from the mean value
+            xbar = getXbar(all_x, xbar, data, counts)
+            xsqdiff = sum((xbar-all_x[0])**2)
+            for i in range(1, nn):
+                xsqdiff += sum((xbar[vi[i]]-all_x[i])**2)
+
+            # Norm of the sum of the subgradients
+            subg = all_y[0] - data[0]['D']*all_x[0]
+            for i in range(1, nn):
+                subg[vi[i]] += all_y[i] - all_x[i]
+            subg_sum_norm = np.linalg.norm(subg)
+            print(f"{datetime.now()}\t{itr}\t{xsqdiff**0.5:.3e}\t{subg_sum_norm:.3e}")
+
+        # v updates
+        zero_update = data[0]['D']*all_x[0]
+        for i in range(1, nn):
+            zero_update[vi[i]] -= all_x[i]
+            all_x[i] -= all_x[0][vi[i]]
+            all_x[i] *= gamma
+            all_v[i] -= all_x[i]
+        zero_update *= gamma
+        all_v[0] -= zero_update
+
+    return all_x[0], all_v
+
+def getXbar(all_x, xbar, data, counts):
+    np.copyto(xbar,all_x[0])
+    for i in range(1, len(data)):
+        xbar[data[i]['varlist']] += all_x[i]
+    xbar /= counts
+    return xbar
