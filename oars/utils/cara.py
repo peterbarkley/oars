@@ -71,3 +71,65 @@ class warpedBoxProj():
             self.daq = self.d + alpha*self.q
 
         return np.clip((y - self.alphac)/(self.daq), self.lower, self.upper, out=y)
+
+class warpedL1Prox():
+
+    def __init__(self, varlist, D=None, **kwargs):
+        '''
+        Args:
+            varlist (list): list of the variable indices
+            D (ndarray): 1 dimensional array diagonal for warping projection (optional, default ones)
+        '''
+        self.vars = varlist
+        if D is None:
+            self.d = np.ones(len(varlist))
+        else:
+            self.d = D 
+        self.alpha = np.inf
+
+    def prox(self, y, alpha=1.0):
+        if alpha != self.alpha:
+            self.adinv = alpha/self.d
+            self.alpha = alpha
+        return np.maximum(np.abs(y)-self.adinv, 0)*np.sign(y)
+
+class hingeLossProx():
+    def __init__(self, varlist, a, b):
+        """
+        varlist: Array-like of indices where the features are non-zero.
+        a:       Array-like of the non-zero feature values.
+        b:       The class label (+1 or -1).
+        """
+        self.varlist = np.array(varlist)
+        self.c = np.array(a)*b
+        
+        # Precompute the squared L2 norm of the non-zero features
+        # ||a||^2 is needed for the projection step
+        self.a_norm_sq = np.sum(self.c ** 2)
+
+    def prox(self, y, alpha=1.0):
+        """
+        y:     The full weight vector (numpy array).
+        alpha: The step size / proximal penalty parameter.
+        """
+        # 1. Compute the dot product only using the non-zero indices
+        dot_product = np.dot(self.c, y)
+        
+        # 2. Calculate the margin based on the correct Hinge Loss formula
+        margin = 1.0 + dot_product
+        
+        # 3. If the point is correctly classified and outside the margin, do nothing
+        if margin <= 0:
+            return y
+            
+        # 4. Calculate the scaling factor (tau)
+        # We move towards the margin boundary, but cap the step by alpha
+        tau = min(alpha, margin / self.a_norm_sq)
+        
+        # 5. Apply the sparse update
+        # We move y in the direction of the gradient: b * a
+        y += tau * self.c
+        
+        return y
+
+        

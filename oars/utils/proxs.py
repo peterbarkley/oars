@@ -397,9 +397,9 @@ class absProx(baseProx):
 
     # Evaluates L1 norm resolvent
     @_log
-    def prox(self, y, tau=1.0, tol=None):
+    def prox(self, y, alpha=1.0, tol=None):
         u = y - self.data
-        r = np.maximum(np.abs(u)-tau, 0)*np.sign(u) + self.data
+        r = np.maximum(np.abs(u)-alpha, 0)*np.sign(u) + self.data
         # print(f"Data: {self.data}, y: {y}, u: {u}, r: {r}", flush=True)
         return r
 
