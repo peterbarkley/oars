@@ -74,13 +74,14 @@ class warpedBoxProj():
 
 class warpedL1Prox():
 
-    def __init__(self, varlist, D=None, **kwargs):
+    def __init__(self, varlist, scale=1, D=None, **kwargs):
         '''
         Args:
             varlist (list): list of the variable indices
             D (ndarray): 1 dimensional array diagonal for warping projection (optional, default ones)
         '''
         self.vars = varlist
+        self.scale = scale
         if D is None:
             self.d = np.ones(len(varlist))
         else:
@@ -89,7 +90,7 @@ class warpedL1Prox():
 
     def prox(self, y, alpha=1.0):
         if alpha != self.alpha:
-            self.adinv = alpha/self.d
+            self.adinv = self.scale*alpha/self.d
             self.alpha = alpha
         return np.maximum(np.abs(y)-self.adinv, 0)*np.sign(y)
 
