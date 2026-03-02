@@ -410,7 +410,7 @@ def caraStarAlgorithm(data, A, warmstartprimal=None, warmstartdual=None, itrs=10
     return all_x[0], all_v
 
 def getXbar(all_x, xbar, data, counts):
-    np.copyto(xbar,all_x[0])
+    np.copyto(xbar, all_x[0])
     for i in range(1, len(data)):
         xbar[data[i]['varlist']] += all_x[i]
     xbar /= counts

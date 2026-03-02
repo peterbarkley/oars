@@ -115,8 +115,8 @@ class hingeLossProx():
         # 1. Compute the dot product only using the non-zero indices
         dot_product = np.dot(self.c, y)
         
-        # 2. Calculate the margin based on the correct Hinge Loss formula
-        margin = 1.0 + dot_product
+        # 2. Calculate the margin based on the Hinge Loss formula
+        margin = 1.0 - dot_product
         
         # 3. If the point is correctly classified and outside the margin, do nothing
         if margin <= 0:
