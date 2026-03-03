@@ -30,7 +30,7 @@ EXTRAS = {
     'pepit': ['PEPit'],
     'distributed': ['mpi4py'],
     'all': ['PEPit', 'pandas', 'mpi4py'],
-    'paper': ['pandas', 'matplotlib', 'seaborn', 'jupyter', 'mosek', 'gurobipy']
+    'paper': ['pandas', 'matplotlib', 'seaborn', 'jupyter', 'mosek', 'gurobipy', 'plotly']
 }
 
 # The rest you shouldn't have to touch too much :)
