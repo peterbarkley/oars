@@ -381,7 +381,7 @@ def caraStarAlgorithm(data, A, warmstartprimal=None, warmstartdual=None, itrs=10
                 np.copyto(all_y[i],all_x[i])
             all_x[i] = A[i].prox(all_x[i], alpha)
             
-        if callback is not None and callback(itr, all_x, all_v, all_y, A): break
+        if callback is not None and callback(itr=itr, all_x=all_x, all_v=all_v, all_y=all_y, A=A): break
 
         if verbose and (itr+1) % checkperiod == 0:
             # Norm of the sum of the differences from the mean value
