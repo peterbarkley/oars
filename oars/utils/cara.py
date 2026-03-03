@@ -90,9 +90,9 @@ class warpedL1Prox():
 
     def prox(self, y, alpha=1.0):
         if alpha != self.alpha:
-            self.adinv = self.scale*alpha/self.d
+            self.scaling= self.scale*alpha
             self.alpha = alpha
-        return np.maximum(np.abs(y)-self.adinv, 0)*np.sign(y)
+        return np.maximum(np.abs(y)-self.scaling, 0)*np.sign(y)/self.d
 
 class hingeLossProx():
     def __init__(self, varlist, a, b):
