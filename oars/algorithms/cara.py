@@ -387,15 +387,15 @@ def caraStarAlgorithm(data, A, warmstartprimal=None, warmstartdual=None, itrs=10
             # Norm of the sum of the differences from the mean value
             xbar = getXbar(all_x, xbar, data, counts)
             xsqdiff = sum((xbar-all_x[0])**2)
-            for vi, xi in zip(vi[1:], all_x[1:]):
-                xsqdiff += sum((xbar[vi]-xi)**2)
+            for indexi, xi in zip(vi[1:], all_x[1:]):
+                xsqdiff += sum((xbar[indexi]-xi)**2)
 
             # Norm of the sum of the subgradients
             subg = all_y[0] - data[0]['D']*all_x[0]
             for indexi, yi, xi in zip(vi[1:], all_y[1:], all_x[1:]):
                 subg[indexi] += yi - xi
             subg_sum_norm = np.linalg.norm(subg)
-            print(f"{datetime.now()}\t{itr}\t{xsqdiff**0.5:.3e}\t{subg_sum_norm:.3e}")
+            print(f"{datetime.now()}\t{itr+1}\t{xsqdiff**0.5:.3e}\t{subg_sum_norm:.3e}")
 
         # v updates
         zero_update = data[0]['D']*all_x[0]
