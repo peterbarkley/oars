@@ -381,19 +381,19 @@ def caraStarAlgorithm(data, A, warmstartprimal=None, warmstartdual=None, itrs=10
                 np.copyto(all_y[i],all_x[i])
             all_x[i] = A[i].prox(all_x[i], alpha)
             
-        if callback is not None and callback(itr=itr, all_x=all_x, all_v=all_v, all_y=all_y, A=A): break
+        if callback is not None and callback(itr=itr, all_x=all_x, all_v=all_v, all_y=all_y, A=A, data=data): break
 
         if verbose and (itr+1) % checkperiod == 0:
             # Norm of the sum of the differences from the mean value
             xbar = getXbar(all_x, xbar, data, counts)
             xsqdiff = sum((xbar-all_x[0])**2)
-            for i in range(1, nn):
-                xsqdiff += sum((xbar[vi[i]]-all_x[i])**2)
+            for vi, xi in zip(vi[1:], all_x[1:]):
+                xsqdiff += sum((xbar[vi]-xi)**2)
 
             # Norm of the sum of the subgradients
             subg = all_y[0] - data[0]['D']*all_x[0]
-            for i in range(1, nn):
-                subg[vi[i]] += all_y[i] - all_x[i]
+            for indexi, yi, xi in zip(vi[1:], all_y[1:], all_x[1:]):
+                subg[indexi] += yi - xi
             subg_sum_norm = np.linalg.norm(subg)
             print(f"{datetime.now()}\t{itr}\t{xsqdiff**0.5:.3e}\t{subg_sum_norm:.3e}")
 
@@ -415,3 +415,57 @@ def getXbar(all_x, xbar, data, counts):
         xbar[data[i]['varlist']] += all_x[i]
     xbar /= counts
     return xbar
+
+def getSubgradients(all_y, all_x, dzero):
+    subgradients = []
+    subgradients.append(all_y[0] - dzero*all_x[0])
+    for y, x in zip(all_y[1:], all_x[1:]):
+        subgradients.append(y-x)
+
+class sampleCallback():
+    def __init__(self):
+        self.all_x = []
+        self.all_y = []
+        self.all_v = []
+        self.xbar = []
+        self.subgradients = []
+
+    def __call__(self, all_x, all_y, all_v, data, **kwargs):
+        self.all_x.append([x.copy() for x in all_x])
+        self.all_y.append([y.copy() for y in all_y])
+        self.all_v.append([v.copy() for v in all_v])
+        self.xbar.append(getXbar(all_x=all_x, xbar=np.zeros(len(all_x[0]), data=data, counts=data[0]['D'] + 1)))
+        self.subgradients.append(getSubgradients(all_y=all_y, all_x=all_x, dzero=data[0]['D']))
+
+class terminationCallback():
+    def __init__(self, xbar_diff_tol=1e-6, subgradient_sum_tol=1e-6):
+        self.xbar_diff_tol = xbar_diff_tol
+        self.subgradient_sum_tol = subgradient_sum_tol
+        self.xbar = None
+
+    def __call__(self, all_x, all_y, data, vi):
+        if self.xbar is None:
+            self.xbar = np.zeros(len(all_x[0]))
+            self.counts = data[0]['D'] + 1
+        
+        if self.xbar_diff_tol is None:
+            xbar_criteria = True
+        else:
+            xbar = getXbar(all_x, self.xbar, data, self.counts)
+            xsqdiff = sum((xbar-all_x[0])**2)
+            for vi, xi in zip(vi[1:], all_x[1:]):
+                xsqdiff += sum((xbar[vi]-xi)**2)
+            xbar_criteria = xsqdiff**0.5 < self.xbar_diff_tol
+
+        if self.subgradient_sum_tol is None:
+            subgrad_criteria = True
+        else:
+            subg = all_y[0] - data[0]['D']*all_x[0]
+            for indexi, yi, xi in zip(vi[1:], all_y[1:], all_x[1:]):
+                subg[indexi] += yi - xi
+            subg_sum_norm = np.linalg.norm(subg)
+            subgrad_criteria = subg_sum_norm < self.subgradient_sum_tol
+
+        return xbar_criteria and subgrad_criteria
+        
+
