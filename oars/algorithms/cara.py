@@ -381,7 +381,7 @@ def caraStarAlgorithm(data, A, warmstartprimal=None, warmstartdual=None, itrs=10
                 np.copyto(all_y[i],all_x[i])
             all_x[i] = A[i].prox(all_x[i], alpha)
             
-        if callback is not None and callback(itr=itr, all_x=all_x, all_v=all_v, all_y=all_y, A=A, data=data): break
+        if callback is not None and callback(itr=itr, all_x=all_x, all_v=all_v, all_y=all_y, A=A, data=data, vi=vi): break
 
         if verbose and (itr+1) % checkperiod == 0:
             # Norm of the sum of the differences from the mean value
@@ -421,6 +421,7 @@ def getSubgradients(all_y, all_x, dzero):
     subgradients.append(all_y[0] - dzero*all_x[0])
     for y, x in zip(all_y[1:], all_x[1:]):
         subgradients.append(y-x)
+    return subgradients
 
 class sampleCallback():
     def __init__(self):
@@ -434,7 +435,7 @@ class sampleCallback():
         self.all_x.append([x.copy() for x in all_x])
         self.all_y.append([y.copy() for y in all_y])
         self.all_v.append([v.copy() for v in all_v])
-        self.xbar.append(getXbar(all_x=all_x, xbar=np.zeros(len(all_x[0]), data=data, counts=data[0]['D'] + 1)))
+        self.xbar.append(getXbar(all_x=all_x, xbar=np.zeros(len(all_x[0])), data=data, counts=data[0]['D'] + 1))
         self.subgradients.append(getSubgradients(all_y=all_y, all_x=all_x, dzero=data[0]['D']))
 
 class terminationCallback():
@@ -443,7 +444,7 @@ class terminationCallback():
         self.subgradient_sum_tol = subgradient_sum_tol
         self.xbar = None
 
-    def __call__(self, all_x, all_y, data, vi):
+    def __call__(self, itr, all_x, all_y, data, vi, **kwargs):
         if self.xbar is None:
             self.xbar = np.zeros(len(all_x[0]))
             self.counts = data[0]['D'] + 1
@@ -453,8 +454,8 @@ class terminationCallback():
         else:
             xbar = getXbar(all_x, self.xbar, data, self.counts)
             xsqdiff = sum((xbar-all_x[0])**2)
-            for vi, xi in zip(vi[1:], all_x[1:]):
-                xsqdiff += sum((xbar[vi]-xi)**2)
+            for indexi, xi in zip(vi[1:], all_x[1:]):
+                xsqdiff += sum((xbar[indexi]-xi)**2)
             xbar_criteria = xsqdiff**0.5 < self.xbar_diff_tol
 
         if self.subgradient_sum_tol is None:
@@ -465,7 +466,8 @@ class terminationCallback():
                 subg[indexi] += yi - xi
             subg_sum_norm = np.linalg.norm(subg)
             subgrad_criteria = subg_sum_norm < self.subgradient_sum_tol
-
+        if xbar_criteria and subgrad_criteria:
+            print('Terminated for convergence. Iteration ', itr+1)
         return xbar_criteria and subgrad_criteria
         
 
