@@ -438,36 +438,262 @@ class sampleCallback():
         self.xbar.append(getXbar(all_x=all_x, xbar=np.zeros(len(all_x[0])), data=data, counts=data[0]['D'] + 1))
         self.subgradients.append(getSubgradients(all_y=all_y, all_x=all_x, dzero=data[0]['D']))
 
-class terminationCallback():
-    def __init__(self, xbar_diff_tol=1e-6, subgradient_sum_tol=1e-6):
+def infTest(xbar, counts, data, all_x, vi, all_y, subgradient_sum_tol, itr, xbar_diff_tol):
+    if xbar_diff_tol is None:
+        xbar_criteria = True
+    else:
+        xbar = getXbar(all_x, xbar, data, counts)
+        xabsdiff = max(np.abs(xbar-all_x[0]))
+        for indexi, xi in zip(vi[1:], all_x[1:]):
+            t = max(np.abs(xbar[indexi]-xi))
+            xabsdiff = max(t, xabsdiff)
+
+
+        xbar_criteria = xabsdiff < xbar_diff_tol
+
+    if subgradient_sum_tol is None:
+        subgrad_criteria = True
+    else:
+        subg = all_y[0] - data[0]['D']*all_x[0]
+        for indexi, yi, xi in zip(vi[1:], all_y[1:], all_x[1:]):
+            subg[indexi] += yi - xi
+        subg_sum_norm = max(np.abs(subg))
+        subgrad_criteria = subg_sum_norm < subgradient_sum_tol
+    if xbar_criteria and subgrad_criteria:
+        print('Terminated for convergence. Iteration ', itr+1)
+    return xbar_criteria and subgrad_criteria
+
+class terminationCallbackLinf():
+    def __init__(self, xbar_diff_tol=1e-6, subgradient_sum_tol=1e-6, checkperiod=10):
         self.xbar_diff_tol = xbar_diff_tol
         self.subgradient_sum_tol = subgradient_sum_tol
         self.xbar = None
+        self.checkperiod = checkperiod
 
     def __call__(self, itr, all_x, all_y, data, vi, **kwargs):
-        if self.xbar is None:
-            self.xbar = np.zeros(len(all_x[0]))
-            self.counts = data[0]['D'] + 1
+        if itr % self.checkperiod == 0:
+            if self.xbar is None:
+                self.xbar = np.zeros(len(all_x[0]))
+                self.counts = data[0]['D'] + 1
+            
+            if self.xbar_diff_tol is None:
+                xbar_criteria = True
+            else:
+                xbar = getXbar(all_x, self.xbar, data, self.counts)
+                xabsdiff = max(np.abs(xbar-all_x[0]))
+                for indexi, xi in zip(vi[1:], all_x[1:]):
+                    t = max(np.abs(xbar[indexi]-xi))
+                    xabsdiff = max(t, xabsdiff)
+
+
+                xbar_criteria = xabsdiff < self.xbar_diff_tol
+
+            if self.subgradient_sum_tol is None:
+                subgrad_criteria = True
+            else:
+                subg = all_y[0] - data[0]['D']*all_x[0]
+                for indexi, yi, xi in zip(vi[1:], all_y[1:], all_x[1:]):
+                    subg[indexi] += yi - xi
+                subg_sum_norm = max(np.abs(subg))
+                subgrad_criteria = subg_sum_norm < self.subgradient_sum_tol
+            if xbar_criteria and subgrad_criteria:
+                print('Terminated for convergence. Iteration ', itr+1)
+            return xbar_criteria and subgrad_criteria
         
-        if self.xbar_diff_tol is None:
+def euclideanTest(xbar, counts, data, all_x, vi, all_y, subgradient_sum_tol, itr, xbar_diff_tol):
+        
+        if xbar_diff_tol is None:
             xbar_criteria = True
         else:
-            xbar = getXbar(all_x, self.xbar, data, self.counts)
+            xbar = getXbar(all_x, xbar, data, counts)
             xsqdiff = sum((xbar-all_x[0])**2)
             for indexi, xi in zip(vi[1:], all_x[1:]):
                 xsqdiff += sum((xbar[indexi]-xi)**2)
-            xbar_criteria = xsqdiff**0.5 < self.xbar_diff_tol
+            xbar_criteria = xsqdiff < xbar_diff_tol
 
-        if self.subgradient_sum_tol is None:
+        if subgradient_sum_tol is None:
             subgrad_criteria = True
         else:
             subg = all_y[0] - data[0]['D']*all_x[0]
             for indexi, yi, xi in zip(vi[1:], all_y[1:], all_x[1:]):
                 subg[indexi] += yi - xi
-            subg_sum_norm = np.linalg.norm(subg)
-            subgrad_criteria = subg_sum_norm < self.subgradient_sum_tol
+            subg_sum_norm = np.sum(subg**2)
+            subgrad_criteria = subg_sum_norm < subgradient_sum_tol
         if xbar_criteria and subgrad_criteria:
             print('Terminated for convergence. Iteration ', itr+1)
         return xbar_criteria and subgrad_criteria
+
+class terminationCallback():
+    def __init__(self, xbar_diff_tol=1e-6, subgradient_sum_tol=1e-6, norm='l2', checkperiod=10):
+        self.xbar_diff_tol = xbar_diff_tol
+        self.subgradient_sum_tol = subgradient_sum_tol
+        self.xbar = None
+        self.norm = norm
+        self.checkperiod = checkperiod
+
+    def __call__(self, itr, all_x, all_y, data, vi, **kwargs):
+        if itr % self.checkperiod != 0:
+            return False
         
+        if self.xbar is None:
+            self.xbar = np.zeros(len(all_x[0]))
+            self.counts = data[0]['D'] + 1
+        if self.norm == 'l2':
+            return euclideanTest(self.xbar, self.counts, data, all_x, vi, all_y, self.subgradient_sum_tol, itr, self.xbar_diff_tol)
+        elif self.norm == 'inf':
+            return infTest
+        
+
+def constantScaling(xbar, **kwargs):
+    return 1., xbar
+
+class distanceToGoScaling():
+    def __init__(self, scale=5, period=100, verbose=False):
+        self.oldx = None
+        self.scale = scale
+        self.period = period
+        self.verbose = verbose
+
+    def __call__(self, itr, all_x, all_v, all_y, xbar, data, counts, vi):
+        if itr % self.period != 0 or self.oldx is None :
+            self.oldx = [xi.copy() for xi in all_x]
+            return 1., xbar
+        
+        xbar = getXbar(all_x, xbar, data, counts)
+        xabsdiff = max(np.abs(xbar-all_x[0]))
+        for indexi, xi in zip(vi[1:], all_x[1:]):
+            t = max(np.abs(xbar[indexi]-xi))
+            xabsdiff = max(t, xabsdiff)
+        max_x_change = max([max(np.abs(oldxi - xi)) for oldxi, xi in zip(self.oldx, all_x)])
+        if xabsdiff > self.scale*max_x_change:
+            if self.verbose: print('shift alpha for xbar', xabsdiff, max_x_change)
+            self.oldx = [xi.copy() for xi in all_x]
+            return 2., xbar
+        subg = all_y[0] - data[0]['D']*all_x[0]
+        for indexi, yi, xi in zip(vi[1:], all_y[1:], all_x[1:]):
+            subg[indexi] += yi - xi
+        subg_sum_norm = max(np.abs(subg))
+        if subg_sum_norm > self.scale*max_x_change:
+            self.oldx = [xi.copy() for xi in all_x]
+            if self.verbose: print('shift alpha for sum subgrad', subg_sum_norm, max_x_change)
+            return 2., xbar
+        
+        self.oldx = [xi.copy() for xi in all_x]
+        if self.verbose: print(xabsdiff, subg_sum_norm, max_x_change)
+        return 1., xbar
+
+
+
+def scalingCaraStarAlgorithm(data, A, warmstartprimal=None, warmstartdual=None, itrs=1001, gamma=1.0, start_alpha=1., alphaScaling=constantScaling, mu=10, tau=2, verbose=False, callback=terminationCallback()):
+    """
+    Run the coupled adaptive resolvent splitting algorithm with star matrices W=Z. 
+    Assumes the first operator is the center of the star.
+    Assumes the first operator contains all variables.
+
+    Args:
+        data (list): list of :math:`n` initialization dictionaries for A
+            each of which requires a varlist key with a list of variable indexes as its value. 
+            The first operator will need the D vector with its degree for each variable provided in the data.
+        A (list): list of :math:`n` initializable maximal monotone operators callable via a prox function. 
+        warmstartprimal (dictionary, optional): array with estimate of x_0 
+        warmstartdual (list, optional): list of length :math:`n` giving a dictionary for each resolvent with keys for each subvector id pertaining to that resolvent and values giving the subgradient estimate for that subvector in that resolvent. The sum of the subgradients over the resolvents for each subvector must be zero.
+        itrs (int, optional): the number of iterations
+        gamma (float, optional): parameter in (0,2) for :math:`v^{k+1} = v^k - \\gamma W x^k`
+        alpha (function, optional): scaling update function
+        verbose (bool, optional): True for verbose output
+        callback (function, optional): callback function
+
+    Returns:
+        x (list): value of x_0 at termination
+        all_v (list): list of :math:`n` ndarrays of the node consensus iterates at solution
+
+    Examples:
+    """
+    # Initialize the operators
+    nn = len(data)
+    assert(len(A) == len(data))
+    vi = [] # variable indices
+    for di in data:
+        vi.append(di['varlist'])
+        
+    counts = data[0]['D'] + 1 # number of proxs for each variable
+    alpha = start_alpha
+    # Initialize the variables
+    all_x = [np.zeros(len(vi[i])) for i in range(nn)]
+    if warmstartdual is not None:
+        all_v = warmstartdual
+    else:
+        all_v = [all_x[i].copy() for i in range(nn)]
+    all_y = [all_x[i].copy() for i in range(nn)]
+    xbar = all_x[0].copy()
+    for i in range(nn):
+        A[i] = A[i](**data[i])
+
+    # Warm start primal
+    if warmstartprimal is not None:
+        all_v[0] += data[0]['D']*warmstartprimal
+        for i in range(1, nn):
+            all_v[i] -= warmstartprimal[vi[i]]
+
+    # Run the algorithm
+    if verbose: 
+        print('date\t\ttime\t\titr\t||x-bar(x)||\t||sum dual||')
+        checkperiod = max(itrs//10,1)
+    for itr in range(itrs):
+        # Prox loop
+        # First iterate (center of star)
+        np.copyto(all_x[0], all_v[0])
+        if verbose or callback is not None:
+            np.copyto(all_y[0],all_x[0])
+        all_x[0] = A[0].prox(all_x[0], alpha)
+
+        # Points of star
+        for i in range(1, nn):
+            np.copyto(all_x[i],all_x[0][vi[i]]) # Lx
+            all_x[i] *= 2
+            all_x[i] += all_v[i]
+            if verbose or callback is not None:
+                np.copyto(all_y[i],all_x[i])
+            all_x[i] = A[i].prox(all_x[i], alpha)
+            
+        if callback is not None and callback(itr=itr, all_x=all_x, all_v=all_v, all_y=all_y, A=A, data=data, vi=vi): break
+
+        if verbose and (itr+1) % checkperiod == 0:
+            # Norm of the sum of the differences from the mean value
+            xbar = getXbar(all_x, xbar, data, counts)
+            xsqdiff = sum((xbar-all_x[0])**2)
+            for indexi, xi in zip(vi[1:], all_x[1:]):
+                xsqdiff += sum((xbar[indexi]-xi)**2)
+
+            # Norm of the sum of the subgradients
+            subg = all_y[0] - data[0]['D']*all_x[0]
+            for indexi, yi, xi in zip(vi[1:], all_y[1:], all_x[1:]):
+                subg[indexi] += yi - xi
+            subg_sum_norm = np.linalg.norm(subg)
+            print(f"{datetime.now()}\t{itr+1}\t{xsqdiff**0.5:.3e}\t{subg_sum_norm:.3e}")
+
+        shift, xbar = alphaScaling(itr=itr, all_x=all_x, all_v=all_v, all_y=all_y, xbar=xbar, data=data, counts=counts, vi=vi)
+        if shift != 1.:
+            alpha *= shift
+            if verbose: print('New alpha', alpha)
+            # v_0 = (v_0 - \bar{x})*shift + D\bar{x}
+            all_v[0] *= shift
+            all_v[0] += (1-shift)*data[0]['D']*xbar
+            for i in range(1, nn):
+                all_v[i] *= shift
+                all_v[i] += (shift - 1)*xbar[vi[i]]
+            
+
+
+        # v updates
+        zero_update = data[0]['D']*all_x[0]
+        for i in range(1, nn):
+            zero_update[vi[i]] -= all_x[i]
+            all_x[i] -= all_x[0][vi[i]]
+            all_x[i] *= gamma
+            all_v[i] -= all_x[i]
+        zero_update *= gamma
+        all_v[0] -= zero_update
+
+    return all_x[0], all_v
 
