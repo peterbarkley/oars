@@ -120,7 +120,6 @@ def redPhAlgorithm(p, data, A, W, Z, I, warmstartprimal=None, warmstartdual=None
 
     Returns:
         x (list): list of :math:`p` mean values of the subvectors over the node solutions at termination
-        logs (list): list of n logs for the operators
         all_x (list): list of :math:`n` ndarrays of the node solutions
         all_v (list): list of :math:`n` ndarrays of the node consensus iterates at solution
 
@@ -188,10 +187,10 @@ def redPhAlgorithm(p, data, A, W, Z, I, warmstartprimal=None, warmstartdual=None
 
     if verbose:
         printMetrics(all_x, all_y, pp, p, I, itr, A, Z)    
-    ybar = getFullVariable(all_x, A, I)
+    xbar = getFullVariable(all_x, A, I)
     
 
-    return ybar, all_x, all_v
+    return xbar, all_x, all_v
 
 def printMetrics(all_x, all_y, pp, p, I, itr, A, Z):
     

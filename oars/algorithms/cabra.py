@@ -265,22 +265,9 @@ def cabraAlgorithm(data, A, B, W, Z, K=None, Q=None, warmstartprimal=None, warms
                 all_v[i][k] -= sum(gammaW[k][idx, jdx]*all_x[j][k] for jdx, j in enumerate(PA[k]))
 
         
-    ybar = [np.mean([all_x[i][k] for i in PA[k]], axis=0) for k in range(p)]
-    
-    # Build logs list
-    logs = []
-    for i in range(n):
-        if hasattr(A[i], 'log'):
-            logs.append(A[i].log)
-        else:
-            logs.append([])
-    for j in range(m):
-        if hasattr(B[j], 'log'):
-            logs.append(B[j].log)
-        else:
-            logs.append([])
+    xbar = [np.mean([all_x[i][k] for i in PA[k]], axis=0) for k in range(p)]
 
-    return ybar, logs, all_x, all_v
+    return xbar, all_x, all_v
 
 
 def cabraFullAlgorithm(data, A, B, W, Z, K=None, Q=None, warmstartprimal=None, warmstartdual=None, itrs=1001, gamma=0.9, alpha=1.0, verbose=False, callback=None):

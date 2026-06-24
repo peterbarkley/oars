@@ -73,10 +73,10 @@ def abraAlgorithm(data, A, B, W, Z, K=None, Q=None, warmstartprimal=None, warmst
         print('date\t\ttime\t\titr\t||x-bar(x)||\t||sum dual||')
         checkperiod = max(itrs//10,1)
     for itr in range(itrs):
-        all_b = zeros((m,) + shape)
+        all_b.fill(0)
         for i in range(n):
             if i == 0:
-                all_y[i] = all_v[0]
+                all_y[i] = all_v[0].copy()
             else:
                 all_y[i] = all_v[i] + einsum('i,i...->...', L[i,:i], all_x[:i]) - alpha*sum(Q[i,j]*all_b[j] for j in range(m))
             all_y[i] /= Z[i,i]
@@ -102,19 +102,6 @@ def abraAlgorithm(data, A, B, W, Z, K=None, Q=None, warmstartprimal=None, warmst
 
         
     x = mean(all_x, axis=0)
-    
-    # Build logs list
-    logs = []
-    for i in range(n):
-        if hasattr(A[i], 'log'):
-            logs.append(A[i].log)
-        else:
-            logs.append([])
-    for j in range(m):
-        if hasattr(B[j], 'log'):
-            logs.append(B[j].log)
-        else:
-            logs.append([])
 
-    return x, logs, all_x, all_v, all_b
+    return x, all_x, all_v, all_b
 
