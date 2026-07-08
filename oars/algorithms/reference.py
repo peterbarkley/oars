@@ -1,9 +1,27 @@
 import numpy as np
 from oars.algorithms.reducedph import getVar, getFullVariable
 from datetime import datetime
+import warnings
 
 def dadmmAlgorithm(data, resolvents, neighbors, warmstartprimal=None, alpha=1.0, itrs=1001, verbose=False, callback=None):
+    """
+    Run the Distributed ADMM algorithm in serial
 
+    Args:
+        data (list): list of :math:`n` initialization dictionaries for resolvents, each of which contains a varlist entry with a list of variable indexes as its value
+        resolvents (list): list of :math:`n` initializable maximal monotone operators callable via a prox function 
+        neighbors (list): list of :math:`n` lists giving the neighbors for each resolvent
+        warmstartprimal (ndarray, optional): initial point for all agents, shape p
+        alpha (float, optional): the scaling parameter
+        itrs (int, optional): the number of iterations
+        verbose (bool, optional): True for verbose output
+        callback (function, optional): callback function with signature (itr, x, y)
+
+    Returns:
+        x (ndarray): mean of the agents' solutions at termination
+
+    Examples:
+    """
     n = len(resolvents)
     for i in range(n):
         resolvents[i] = resolvents[i](**data[i])
@@ -37,15 +55,7 @@ def dadmmAlgorithm(data, resolvents, neighbors, warmstartprimal=None, alpha=1.0,
 
     x = np.mean(U, axis=0)
     
-    # Build logs list
-    logs = []
-    for i in range(n):
-        if hasattr(resolvents[i], 'log'):
-            logs.append(resolvents[i].log)
-        else:
-            logs.append([])
-
-    return x, logs, U
+    return x, U
 
 def pg_extra(data, A, B, W, bar_W=None, Ls=1., itrs=1001, alpha=1.0, warmstartprimal=None, verbose=False, callback=None):
     """
@@ -75,7 +85,10 @@ def pg_extra(data, A, B, W, bar_W=None, Ls=1., itrs=1001, alpha=1.0, warmstartpr
         bar_W = 0.5*(np.eye(W.shape[0]) + W)
 
     assert len(A) == len(B), "A and B must be the same length"
-    assert 0 < alpha < np.linalg.eigvals(bar_W)[0]*2/Ls, "alpha must be in (0, lambda_min(barW)/L). We assume all gradients have L <= 1."
+    max_alpha = np.linalg.eigvals(bar_W)[0]*2/Ls
+    if 0 < alpha < max_alpha:
+        warnings.warn(f"alpha must be in (0, 2*lambda_min(barW)/L) = (0, {max_alpha:.3e}). We assume all gradients have L <= 1.", UserWarning)
+        
     n = len(A)
     for i in range(n):
         A[i] = A[i](**data[0][i])
@@ -110,7 +123,7 @@ def pg_extra(data, A, B, W, bar_W=None, Ls=1., itrs=1001, alpha=1.0, warmstartpr
         for i in range(n):
             x_zero[i] = A[i].prox(half_x[i], alpha)
         
-        if callback is not None and callback(itr=itr*2, x=x_zero, y=half_x, b=grad_one, v=x_one):
+        if callback is not None and callback(itr=itr*2, all_x=x_zero, all_y=half_x, all_b=grad_one, all_v=x_one):
             break
 
         for i in range(n):
@@ -119,7 +132,7 @@ def pg_extra(data, A, B, W, bar_W=None, Ls=1., itrs=1001, alpha=1.0, warmstartpr
         for i in range(n):
             x_one[i] = A[i].prox(half_x[i], alpha)
 
-        if callback is not None and callback(itr=itr*2, x=x_one, y=half_x, b=grad_zero, v=x_zero):
+        if callback is not None and callback(itr=itr*2, all_x=x_one, all_y=half_x, all_b=grad_zero, all_v=x_zero):
             break
         
         if verbose and itr*2 % checkperiod == 0:
@@ -150,7 +163,6 @@ def p_extra(data, A, W, bar_W=None, itrs=1001, alpha=1.0, warmstartprimal=None, 
 
     Returns:
         x (ndarray): mean of the agents' solutions at termination
-        logs (list): list of logs for the operators
         all_x (ndarray): solutions of all agents
 
     """
@@ -198,15 +210,7 @@ def p_extra(data, A, W, bar_W=None, itrs=1001, alpha=1.0, warmstartprimal=None, 
     
     x = np.mean(x_one, axis=0)
     
-    # Collect logs
-    logs = []
-    for op in A:
-        if hasattr(op, 'log'):
-            logs.append(op.log)
-        else:
-            logs.append([])
-    
-    return x, logs, x_one
+    return x, x_one
 
 
 def progressiveHedgingAlgorithm(q, data, A, I, varshapes, warmstartprimal=None, warmstartdual=None, alpha=1.0, itrs=1001, verbose=False, callback=None):

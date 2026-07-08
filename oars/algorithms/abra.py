@@ -86,7 +86,7 @@ def abraAlgorithm(data, A, B, W, Z, K=None, Q=None, warmstartprimal=None, warmst
                 y = sum(K[j, d]*all_x[d] for d in range(i+1))
                 all_b[j] = B[j].grad(y)
             
-        if callback is not None and callback(itr=itr, x=all_x, v=all_v, b=all_b, y=all_y): break
+        if callback is not None and callback(itr=itr, all_x=all_x, all_v=all_v, all_b=all_b, all_y=all_y): break
 
         if verbose and itr % checkperiod == 0:
             xbar = mean(all_x, axis=0)

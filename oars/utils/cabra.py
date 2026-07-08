@@ -171,29 +171,32 @@ class cbLog:
         self.m = m
         self.verbose = verbose
         
-    def __call__(self, itr, x, v, b, y=None):
+    def __call__(self, itr, all_x, all_v, all_b=None, all_y=None, A=None, B=None, data=None, vi=None, b_vi=None):
         """
         Store x values for a given iteration.
 
         Args:
             itr: iteration number
-            x: length n
-            v: length n
-            b: length m
+            all_x: list of length n
+            all_v: list of length n
+            all_b: list of length m
+            all_y: list of length n
         """
-        for varlogi, xi in zip(self.xdata, x):
+        # print(vi)
+        for varlogi, xi in zip(self.xdata, all_x):
             varlogi.append(xi.copy())
-        for varlogi, vi in zip(self.vdata, v):
+        for varlogi, vi in zip(self.vdata, all_v):
             varlogi.append(vi.copy())
-        if y is not None:
-            for varlogi, yi in zip(self.ydata, y):
+        if all_y is not None:
+            for varlogi, yi in zip(self.ydata, all_y):
                 varlogi.append(yi.copy())
 
         if self.m != 0:
-            for varlogi, bi in zip(self.bdata, b):
+            for varlogi, bi in zip(self.bdata, all_b):
                 varlogi.append(bi.copy())
         if self.verbose:
-            print(itr, 'v', v)
-            print(itr, 'x', x)
+            print(itr, 'v', all_v)
+            print(itr, 'y', all_y)
+            print(itr, 'x', all_x)
             
-            if self.m != 0:print(itr, 'b', b)
+            if self.m != 0:print(itr, 'b', all_b)
