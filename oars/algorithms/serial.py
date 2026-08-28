@@ -12,7 +12,7 @@ def serialAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdu
         data (list): list containing the problem data for each resolvent
         resolvents (list): list of :math:`n` resolvent classes
         W (ndarray): size (n, n) ndarray for the :math:`W` matrix
-        Z (ndarray): size (n, n) ndarray for the :math:`Z` matrix
+        Z (ndarray): size (n, n) ndarray for the :math:`Z` matrix with diag(Z) = 2
         warmstartprimal (ndarray, optional): resolvent.shape ndarray for :math:`x` in v^0
         warmstartdual (ndarray, optional): n x resolvent.shape ndarray for dual values :math:`u` which sums to 0 in v^0
         itrs (int, optional): the number of iterations
@@ -71,7 +71,7 @@ def serialAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdu
                 all_y[i] = all_v[i] - np.einsum('i,i...->...', Z[i,:i], all_x[:i])
             all_x[i] = resolvents[i].prox(all_y[i], alpha)
             
-        if callback is not None and callback(itr=itr, x=all_x, v=all_v, y=all_y): break
+        if callback is not None and callback(itr=itr, all_x=all_x, all_v=all_v, all_y=all_y): break
 
         if verbose and itr % checkperiod == 0:
             xbar = np.mean(all_x, axis=0)
@@ -82,13 +82,5 @@ def serialAlgorithm(n, data, resolvents, W, Z, warmstartprimal=None, warmstartdu
 
         
     x = np.mean(all_x, axis=0)
-    
-    # Build logs list
-    logs = []
-    for i in range(n):
-        if hasattr(resolvents[i], 'log'):
-            logs.append(resolvents[i].log)
-        else:
-            logs.append([])
 
-    return x, logs, all_x, all_v
+    return x, all_x, all_v

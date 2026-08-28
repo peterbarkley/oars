@@ -446,7 +446,7 @@ def getContractionOptGamma(Z, W, ls=None, mus=None, operators=None, alpha=1, ver
     gamma = Wvar[0,0]/W[0,0]
     return tau, gamma
 
-def getReducedContractionOptGamma(Z, M, ls=None, mus=None, operators=None, alpha=1, verbose=False):
+def getReducedContractionOptGamma(Z, M, ls=None, mus=None, operators=None, alpha=1, verbose=False, **kwargs):
     '''
     Use the dual PEP to get the optimal step size gamma
     for the reduced resolvent splitting method given by equation (11) in the paper, i.e.
@@ -484,7 +484,7 @@ def getReducedContractionOptGamma(Z, M, ls=None, mus=None, operators=None, alpha
     obj = cvx.Minimize(rho2)
 
     prob = cvx.Problem(obj, constraints)
-    prob.solve()
+    prob.solve(**kwargs)
     if verbose:
         print(prob.status)
         print(prob.value)
