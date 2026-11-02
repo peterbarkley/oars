@@ -17,6 +17,20 @@ def getVar(data):
         start = stop
     return np.zeros(stop)
 
+def addDiagonal(data, Zs, PA):
+    """
+    Adds the diagonal values to the data dictionary for each prox
+    Assumes the varshape is 1 for each variable (each y_k in R^1)
+
+    Args:
+        data: list of n dictionaries of data for each prox
+        Zs: list of p arrays with the Z matrix for each variable
+        PA: list of p lists with the ordered indices of the proxs for each variable k
+    """
+    for i, di in enumerate(data):
+        if 'D' not in di:
+            di['D'] = np.array([Zs[k][PA[k].index(i), PA[k].index(i)] for k in di['varlist']])
+
 def getFeedersL(Z, PA, A):
     """
     Return a length len(A) list of lists where the fdr[i] contains entries for j < i such that j and i share some k and Z[k][s(i,k), s(j,k)] != 0
@@ -92,9 +106,11 @@ def caraAlgorithm(data, A, W, Z, warmstartprimal=None, warmstartdual=None, itrs=
     # Initialize the operators
     nn = len(data)
     p = len(Z)
+    PA = getPA([di['varlist'] for di in data], p)
+    addDiagonal(data, Z, PA)
 
     # Initialize the variables
-    all_x = [getVar(data[i]) for i in range(nn)]
+    all_x = [getVar(di) for di in data]
     if warmstartdual is not None:
         all_v = warmstartdual
     else:
@@ -107,7 +123,6 @@ def caraAlgorithm(data, A, W, Z, warmstartprimal=None, warmstartdual=None, itrs=
 
     # Get feeders and weights
     gammaW = [gamma*Wk for Wk in W]
-    PA = getPA([Ai.vars for Ai in A], p)
     fdr = getFeedersL(Z, PA, A)
     wfdr = getFeedersW(gammaW, PA, A)
 
